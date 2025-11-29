@@ -14,9 +14,14 @@ export async function GET(request: NextRequest) {
 
     let query: any = {}
     
-    // Nếu không phải admin (includeAll=false), chỉ lấy recipes đã approved hoặc không có status
+    // Nếu không phải admin (includeAll=false), chỉ lấy recipes đã approved và không bị xóa
     if (!includeAll) {
-      query = { $or: [{ status: 'approved' }, { status: { $exists: false } }] }
+      query = { 
+        $and: [
+          { $or: [{ status: 'approved' }, { status: { $exists: false } }] },
+          { $or: [{ isDeleted: { $ne: true } }, { isDeleted: { $exists: false } }] }
+        ]
+      }
     } else if (status) {
       // Admin lọc theo status cụ thể
       query = { status }
@@ -102,13 +107,28 @@ export async function PUT(request: NextRequest) {
     const db = await getDatabase()
     const recipesCollection = db.collection('recipes')
 
+    // Lấy recipe cũ để giữ nguyên status và các field quan trọng
+    const existingRecipe = await recipesCollection.findOne({ _id: new ObjectId(recipe.id) })
+    
+    if (!existingRecipe) {
+      return NextResponse.json(
+        { success: false, error: 'Recipe not found' },
+        { status: 404 }
+      )
+    }
+
     const { id, ...recipeData } = recipe
 
+    // Cập nhật nhưng GIỮ NGUYÊN status, authorId, authorEmail, createdAt
     await recipesCollection.updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: { 
-          ...recipeData, 
+          ...recipeData,
+          status: existingRecipe.status, // Giữ nguyên status
+          authorId: existingRecipe.authorId, // Giữ nguyên author
+          authorEmail: existingRecipe.authorEmail,
+          createdAt: existingRecipe.createdAt, // Giữ nguyên createdAt
           updatedAt: new Date() 
         } 
       }
@@ -128,6 +148,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get('id')
+    const moveToTrash = request.nextUrl.searchParams.get('moveToTrash') === 'true'
 
     if (!id) {
       return NextResponse.json(
@@ -139,7 +160,21 @@ export async function DELETE(request: NextRequest) {
     const db = await getDatabase()
     const recipesCollection = db.collection('recipes')
 
-    await recipesCollection.deleteOne({ _id: new ObjectId(id) })
+    if (moveToTrash) {
+      // Chuyển vào thùng rác (soft delete)
+      await recipesCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { 
+          $set: { 
+            isDeleted: true, 
+            deletedAt: new Date() 
+          } 
+        }
+      )
+    } else {
+      // Xóa vĩnh viễn (hard delete)
+      await recipesCollection.deleteOne({ _id: new ObjectId(id) })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

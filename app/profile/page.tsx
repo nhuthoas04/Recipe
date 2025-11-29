@@ -3,23 +3,62 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/lib/auth-store"
-import { Header } from "@/components/header"
+import { Header } from "@/components/layout/header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Calendar, Clock, CheckCircle, XCircle, Edit } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { User, Mail, Calendar, Clock, CheckCircle, XCircle, Edit, X, Heart } from "lucide-react"
 import type { Recipe } from "@/lib/types"
+import toast, { Toaster } from 'react-hot-toast'
+
+const HEALTH_CONDITIONS = [
+  "Tiểu đường",
+  "Cao huyết áp",
+  "Cholesterol cao",
+  "Dị ứng hải sản",
+  "Dị ứng đậu phộng",
+  "Dị ứng gluten",
+  "Bệnh tim",
+  "Bệnh thận",
+  "Béo phì",
+  "Gầy",
+]
+
+const DIETARY_PREFERENCES = [
+  "Ăn chay",
+  "Ít đường",
+  "Ít muối",
+  "Ít dầu mỡ",
+  "Nhiều protein",
+  "Ít đạm",
+  "Không cay",
+  "Không rượu bia",
+]
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, updateUser } = useAuthStore()
   const [myRecipes, setMyRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
+  const [isEditingHealth, setIsEditingHealth] = useState(false)
+  
+  // Health profile edit state
+  const [editAge, setEditAge] = useState<number>(user?.age || 0)
+  const [editHealthConditions, setEditHealthConditions] = useState<string[]>(user?.healthConditions || [])
+  const [editDietaryPreferences, setEditDietaryPreferences] = useState<string[]>(user?.dietaryPreferences || [])
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login")
       return
+    }
+
+    // Reset edit state when user changes
+    if (user) {
+      setEditAge(user.age || 0)
+      setEditHealthConditions(user.healthConditions || [])
+      setEditDietaryPreferences(user.dietaryPreferences || [])
     }
 
     // Load recipes của user
@@ -41,6 +80,67 @@ export default function ProfilePage() {
 
     loadMyRecipes()
   }, [isAuthenticated, user, router])
+
+  const handleSaveHealthProfile = async () => {
+    if (!user?.email) return
+
+    if (editAge < 1 || editAge > 120) {
+      toast.error("Tuổi phải từ 1 đến 120")
+      return
+    }
+
+    try {
+      // Gọi backend Express API
+      const res = await fetch('http://localhost:5000/api/users/health-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail: user.email,
+          age: editAge,
+          healthConditions: editHealthConditions,
+          dietaryPreferences: editDietaryPreferences,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        // Cập nhật auth store với thông tin mới
+        updateUser({
+          ...user,
+          age: editAge,
+          healthConditions: editHealthConditions,
+          dietaryPreferences: editDietaryPreferences,
+          hasCompletedHealthProfile: true,
+        })
+        setIsEditingHealth(false)
+        toast.success("Cập nhật thông tin sức khỏe thành công!")
+        
+        // Reload trang để cập nhật AI recommendations
+        window.location.reload()
+      } else {
+        toast.error(data.error || "Có lỗi xảy ra")
+      }
+    } catch (error) {
+      console.error('Error updating health profile:', error)
+      toast.error("Có lỗi xảy ra khi kết nối server")
+    }
+  }
+
+  const toggleHealthCondition = (condition: string) => {
+    setEditHealthConditions(prev =>
+      prev.includes(condition)
+        ? prev.filter(c => c !== condition)
+        : [...prev, condition]
+    )
+  }
+
+  const toggleDietaryPreference = (preference: string) => {
+    setEditDietaryPreferences(prev =>
+      prev.includes(preference)
+        ? prev.filter(p => p !== preference)
+        : [...prev, preference]
+    )
+  }
 
   if (!isAuthenticated || !user) {
     return null
@@ -80,6 +180,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen">
+      <Toaster position="top-right" />
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -125,6 +226,136 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Thông tin sức khỏe */}
+              {user.hasCompletedHealthProfile && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Heart className="h-5 w-5 text-red-500" />
+                        Thông Tin Sức Khỏe
+                      </CardTitle>
+                      {!isEditingHealth ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingHealth(true)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditingHealth(false)
+                              setEditAge(user.age || 0)
+                              setEditHealthConditions(user.healthConditions || [])
+                              setEditDietaryPreferences(user.dietaryPreferences || [])
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveHealthProfile}
+                          >
+                            Lưu
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Tuổi */}
+                    <div>
+                      <p className="text-sm font-medium mb-2">Tuổi</p>
+                      {!isEditingHealth ? (
+                        <Badge variant="outline" className="text-base">
+                          {user.age || "Chưa cập nhật"} tuổi
+                        </Badge>
+                      ) : (
+                        <Input
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={editAge}
+                          onChange={(e) => setEditAge(Number(e.target.value))}
+                          className="w-24"
+                        />
+                      )}
+                    </div>
+
+                    {/* Tình trạng sức khỏe */}
+                    <div>
+                      <p className="text-sm font-medium mb-2">Tình trạng sức khỏe</p>
+                      <div className="flex flex-wrap gap-2">
+                        {!isEditingHealth ? (
+                          user.healthConditions && user.healthConditions.length > 0 ? (
+                            user.healthConditions.map((condition) => (
+                              <Badge key={condition} variant="outline" className="bg-green-50">
+                                {condition}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Chưa cập nhật</p>
+                          )
+                        ) : (
+                          HEALTH_CONDITIONS.map((condition) => (
+                            <Badge
+                              key={condition}
+                              variant="outline"
+                              className={`cursor-pointer transition-colors ${
+                                editHealthConditions.includes(condition)
+                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                  : "bg-gray-100 hover:bg-gray-200"
+                              }`}
+                              onClick={() => toggleHealthCondition(condition)}
+                            >
+                              {condition}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sở thích ăn uống */}
+                    <div>
+                      <p className="text-sm font-medium mb-2">Sở thích ăn uống</p>
+                      <div className="flex flex-wrap gap-2">
+                        {!isEditingHealth ? (
+                          user.dietaryPreferences && user.dietaryPreferences.length > 0 ? (
+                            user.dietaryPreferences.map((pref) => (
+                              <Badge key={pref} variant="outline" className="bg-blue-50">
+                                {pref}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Chưa cập nhật</p>
+                          )
+                        ) : (
+                          DIETARY_PREFERENCES.map((pref) => (
+                            <Badge
+                              key={pref}
+                              variant="outline"
+                              className={`cursor-pointer transition-colors ${
+                                editDietaryPreferences.includes(pref)
+                                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                                  : "bg-gray-100 hover:bg-gray-200"
+                              }`}
+                              onClick={() => toggleDietaryPreference(pref)}
+                            >
+                              {pref}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Thống kê */}
               <Card className="mt-4">
@@ -218,7 +449,10 @@ export default function ProfilePage() {
                               size="sm"
                               onClick={() => {
                                 // TODO: Có thể thêm chức năng chỉnh sửa và gửi lại
-                                alert("Chức năng chỉnh sửa đang được phát triển")
+                                toast("Chức năng chỉnh sửa đang được phát triển", {
+                                  icon: '🚧',
+                                  duration: 3000,
+                                })
                               }}
                             >
                               <Edit className="h-4 w-4 mr-1" />

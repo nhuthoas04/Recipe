@@ -2,9 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Noto_Sans as NotoSans, Noto_Serif as NotoSerif } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { UserDataSync } from "@/components/user-data-sync"
-import { CleanupLocalStorage } from "@/components/cleanup-localstorage"
-import { ClientOnly } from "@/components/client-only"
+import { UserDataSync } from "@/components/auth/user-data-sync"
+import { CleanupLocalStorage } from "@/components/auth/cleanup-localstorage"
+import { ClientOnly } from "@/components/shared/client-only"
 import "./globals.css"
 
 const notoSans = NotoSans({
@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   title: "Bếp Nhà - Gợi Ý Nấu Ăn & Lập Thực Đơn",
   description: "Hệ thống gợi ý công thức nấu ăn và lập thực đơn cho gia đình Việt",
   generator: "v0.app",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: '/apple-icon.png',
+  },
 }
 
 export default function RootLayout({
