@@ -12,6 +12,7 @@ interface RecipeStore {
   searchQuery: string
   selectedCategory: string | null
   selectedCuisine: string | null
+  selectedDifficulty: string | null
   currentUserId: string | null
 
   // Actions
@@ -20,6 +21,7 @@ interface RecipeStore {
   setSearchQuery: (query: string) => void
   setSelectedCategory: (category: string | null) => void
   setSelectedCuisine: (cuisine: string | null) => void
+  setSelectedDifficulty: (difficulty: string | null) => void
   addMealPlan: (mealPlan: MealPlan) => void
   updateMealPlan: (id: string, mealPlan: Partial<MealPlan>) => void
   removeMealPlan: (id: string) => void
@@ -80,6 +82,7 @@ export const useRecipeStore = create<RecipeStore>()(
       searchQuery: "",
       selectedCategory: null,
       selectedCuisine: null,
+      selectedDifficulty: null,
       currentUserId: null,
 
       setCurrentUser: (userId) => {
@@ -147,6 +150,8 @@ export const useRecipeStore = create<RecipeStore>()(
       setSelectedCategory: (category) => set({ selectedCategory: category }),
 
       setSelectedCuisine: (cuisine) => set({ selectedCuisine: cuisine }),
+
+      setSelectedDifficulty: (difficulty) => set({ selectedDifficulty: difficulty }),
 
       addMealPlan: async (mealPlan) => {
         const state = get()
@@ -305,25 +310,38 @@ export const useRecipeStore = create<RecipeStore>()(
       },
 
       getFilteredRecipes: () => {
-        const { recipes, searchQuery, selectedCategory, selectedCuisine } = get()
+        const { recipes, searchQuery, selectedCategory, selectedCuisine, selectedDifficulty } = get()
 
         return recipes.filter((recipe) => {
           const matchesSearch = searchQuery
             ? recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
               recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              recipe.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+              recipe.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+              recipe.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
             : true
 
           const matchesCategory = selectedCategory ? recipe.category === selectedCategory : true
 
           const matchesCuisine = selectedCuisine ? recipe.cuisine === selectedCuisine : true
 
-          return matchesSearch && matchesCategory && matchesCuisine
+          const matchesDifficulty = selectedDifficulty ? recipe.difficulty === selectedDifficulty : true
+
+          return matchesSearch && matchesCategory && matchesCuisine && matchesDifficulty
         })
       },
     }),
     {
       name: "recipe-storage",
+      // Không persist recipes - luôn fetch từ database
+      partialize: (state) => ({
+        mealPlans: state.mealPlans,
+        shoppingList: state.shoppingList,
+        currentUserId: state.currentUserId,
+        searchQuery: state.searchQuery,
+        selectedCategory: state.selectedCategory,
+        selectedCuisine: state.selectedCuisine,
+        selectedDifficulty: state.selectedDifficulty,
+      }),
     },
   ),
 )

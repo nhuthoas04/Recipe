@@ -21,6 +21,8 @@ export interface IRecipe extends Document {
   author: mongoose.Types.ObjectId;
   status: 'pending' | 'approved' | 'rejected';
   reviewNote?: string;
+  likesCount: number;
+  savesCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,7 +83,15 @@ const recipeSchema = new Schema<IRecipe>({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
   },
-  reviewNote: String
+  reviewNote: String,
+  likesCount: {
+    type: Number,
+    default: 0
+  },
+  savesCount: {
+    type: Number,
+    default: 0
+  }
 }, {
   timestamps: true
 });

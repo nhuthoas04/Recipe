@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ChefHat, Facebook, Instagram, Mail, Phone, MapPin } from "lucide-react"
+import { ChefHat, Facebook, Instagram, Github, Mail, Phone, MapPin } from "lucide-react"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -16,7 +16,7 @@ export function Footer() {
               <ChefHat className="h-8 w-8 text-primary" />
               <div>
                 <h1 className="text-2xl font-bold text-primary">Bếp Nhà</h1>
-                <p className="text-xs text-muted-foreground">Nấu ăn ngon mỗi ngày</p>
+                
               </div>
             </Link>
             <p className="text-sm text-muted-foreground mt-2">
@@ -111,13 +111,21 @@ export function Footer() {
               >
                 <Instagram className="h-5 w-5" />
               </a>
+              <a 
+                href="https://github.com/nhuthoas04" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Github className="h-5 w-5" />
+              </a>
             </div>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="border-t mt-8 pt-6 text-center text-sm text-muted-foreground">
-          <p>© {currentYear} Bếp Nhà. Tất cả quyền được bảo lưu.</p>
+          <p>© {currentYear} Bếp Nhà. Nguyen Nhut Hoa.</p>
         </div>
       </div>
     </footer>

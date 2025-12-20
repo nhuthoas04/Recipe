@@ -11,7 +11,7 @@
   --card-foreground: oklch(0.25 0.02 30);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.25 0.02 30);
-  --primary: oklch(0.55 0.18 25);
+  --primary: oklch(0.42 0.1 160);
   --primary-foreground: oklch(0.99 0.01 85);
   --secondary: oklch(0.92 0.03 85);
   --secondary-foreground: oklch(0.35 0.02 30);
@@ -23,7 +23,7 @@
   --destructive-foreground: oklch(0.99 0.01 85);
   --border: oklch(0.9 0.02 85);
   --input: oklch(0.9 0.02 85);
-  --ring: oklch(0.55 0.18 25);
+  --ring: oklch(0.42 0.1 160);
   --chart-1: oklch(0.55 0.18 25);
   --chart-2: oklch(0.65 0.15 120);
   --chart-3: oklch(0.7 0.12 65);
@@ -47,7 +47,7 @@
   --card-foreground: oklch(0.95 0.01 85);
   --popover: oklch(0.22 0.02 30);
   --popover-foreground: oklch(0.95 0.01 85);
-  --primary: oklch(0.65 0.18 35);
+  --primary: oklch(0.50 0.12 160);
   --primary-foreground: oklch(0.99 0.01 85);
   --secondary: oklch(0.3 0.02 30);
   --secondary-foreground: oklch(0.95 0.01 85);
@@ -59,7 +59,7 @@
   --destructive-foreground: oklch(0.95 0.01 85);
   --border: oklch(0.3 0.02 30);
   --input: oklch(0.3 0.02 30);
-  --ring: oklch(0.65 0.18 35);
+  --ring: oklch(0.50 0.12 160);
   --chart-1: oklch(0.65 0.18 35);
   --chart-2: oklch(0.7 0.15 120);
   --chart-3: oklch(0.75 0.12 65);

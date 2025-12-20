@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import User from '../models/User';
+import Recipe from '../models/Recipe';
 import { authenticate, authorizeAdmin, AuthRequest } from '../middleware/auth';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
@@ -219,6 +220,8 @@ router.post('/ai-recommendations', async (req: Request, res: Response) => {
               _id: undefined,
               recommendationScore: score,
               recommendationReasons: reasons,
+              likesCount: recipe.likesCount || 0,
+              savesCount: recipe.savesCount || 0,
             }
           : null
       })
@@ -448,6 +451,196 @@ router.post('/resend-reset-code', async (req: Request, res: Response) => {
       success: false, 
       error: 'Có lỗi xảy ra khi gửi lại mã' 
     });
+  }
+});
+
+// POST - Like recipe
+router.post('/like-recipe', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { recipeId } = req.body;
+    const userId = req.user?.userId;
+
+    console.log('[like-recipe] Request received:', { recipeId, userId });
+
+    if (!recipeId || !userId) {
+      console.log('[like-recipe] Missing fields:', { recipeId, userId });
+      return res.status(400).json({ success: false, error: 'Missing recipeId or userId' });
+    }
+
+    const Recipe = mongoose.connection.collection('recipes');
+    const recipe = await Recipe.findOne({ _id: new mongoose.Types.ObjectId(recipeId) });
+
+    if (!recipe) {
+      console.log('[like-recipe] Recipe not found:', recipeId);
+      return res.status(404).json({ success: false, error: 'Recipe not found' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('[like-recipe] User not found:', userId);
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    console.log('[like-recipe] User found:', user.email, 'Current likedRecipes:', user.likedRecipes?.length || 0);
+
+    const isLiked = user.likedRecipes.some(id => id.toString() === recipeId);
+
+    if (isLiked) {
+      // Unlike
+      user.likedRecipes = user.likedRecipes.filter(id => id.toString() !== recipeId);
+      await Recipe.updateOne(
+        { _id: new mongoose.Types.ObjectId(recipeId) },
+        { $inc: { likesCount: -1 } }
+      );
+    } else {
+      // Like
+      user.likedRecipes.push(new mongoose.Types.ObjectId(recipeId));
+      await Recipe.updateOne(
+        { _id: new mongoose.Types.ObjectId(recipeId) },
+        { $inc: { likesCount: 1 } }
+      );
+    }
+
+    await user.save();
+
+    const updatedRecipe = await Recipe.findOne({ _id: new mongoose.Types.ObjectId(recipeId) });
+
+    res.json({
+      success: true,
+      isLiked: !isLiked,
+      likesCount: updatedRecipe?.likesCount || 0,
+      likedRecipes: user.likedRecipes.map(id => id.toString())
+    });
+  } catch (error: any) {
+    console.error('Like recipe error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST - Save recipe
+router.post('/save-recipe', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { recipeId } = req.body;
+    const userId = req.user?.userId;
+
+    console.log('[save-recipe] Request received:', { recipeId, userId });
+
+    if (!recipeId || !userId) {
+      console.log('[save-recipe] Missing fields:', { recipeId, userId });
+      return res.status(400).json({ success: false, error: 'Missing recipeId or userId' });
+    }
+
+    const Recipe = mongoose.connection.collection('recipes');
+    const recipe = await Recipe.findOne({ _id: new mongoose.Types.ObjectId(recipeId) });
+
+    if (!recipe) {
+      console.log('[save-recipe] Recipe not found:', recipeId);
+      return res.status(404).json({ success: false, error: 'Recipe not found' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('[save-recipe] User not found:', userId);
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    console.log('[save-recipe] User found:', user.email, 'Current savedRecipes:', user.savedRecipes?.length || 0);
+
+    const isSaved = user.savedRecipes.some(id => id.toString() === recipeId);
+
+    if (isSaved) {
+      // Unsave
+      user.savedRecipes = user.savedRecipes.filter(id => id.toString() !== recipeId);
+      await Recipe.updateOne(
+        { _id: new mongoose.Types.ObjectId(recipeId) },
+        { $inc: { savesCount: -1 } }
+      );
+    } else {
+      // Save
+      user.savedRecipes.push(new mongoose.Types.ObjectId(recipeId));
+      await Recipe.updateOne(
+        { _id: new mongoose.Types.ObjectId(recipeId) },
+        { $inc: { savesCount: 1 } }
+      );
+    }
+
+    await user.save();
+
+    const updatedRecipe = await Recipe.findOne({ _id: new mongoose.Types.ObjectId(recipeId) });
+
+    res.json({
+      success: true,
+      isSaved: !isSaved,
+      savesCount: updatedRecipe?.savesCount || 0,
+      savedRecipes: user.savedRecipes.map(id => id.toString())
+    });
+  } catch (error: any) {
+    console.error('Save recipe error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET - Get liked recipes
+router.get('/liked-recipes', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Missing userId' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const Recipe = mongoose.connection.collection('recipes');
+    const likedRecipes = await Recipe.find({
+      _id: { $in: user.likedRecipes }
+    }).toArray();
+
+    res.json({
+      success: true,
+      recipes: likedRecipes.map((r: any) => ({
+        ...r,
+        id: r._id.toString(),
+        _id: undefined
+      }))
+    });
+  } catch (error: any) {
+    console.error('Get liked recipes error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET - Get saved recipes
+router.get('/saved-recipes', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Missing userId' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const Recipe = mongoose.connection.collection('recipes');
+    const savedRecipes = await Recipe.find({
+      _id: { $in: user.savedRecipes }
+    }).toArray();
+
+    res.json({
+      success: true,
+      recipes: savedRecipes.map((r: any) => ({
+        ...r,
+        id: r._id.toString(),
+        _id: undefined
+      }))
+    });
+  } catch (error: any) {
+    console.error('Get saved recipes error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

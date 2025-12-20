@@ -129,7 +129,13 @@ router.post('/login', async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        age: user.age,
+        healthConditions: user.healthConditions,
+        dietaryPreferences: user.dietaryPreferences,
+        hasCompletedHealthProfile: user.hasCompletedHealthProfile,
+        likedRecipes: user.likedRecipes?.map(id => id.toString()) || [],
+        savedRecipes: user.savedRecipes?.map(id => id.toString()) || [],
       },
       token
     });

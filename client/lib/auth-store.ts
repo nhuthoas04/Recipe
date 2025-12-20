@@ -14,6 +14,8 @@ export interface User {
   healthConditions?: string[]
   dietaryPreferences?: string[]
   hasCompletedHealthProfile?: boolean
+  savedRecipes?: string[]
+  likedRecipes?: string[]
 }
 
 interface AuthStore {
@@ -51,6 +53,11 @@ export const useAuthStore = create<AuthStore>()(
 
           if (!data.success) {
             return { success: false, error: data.error }
+          }
+
+          // Save token to localStorage
+          if (data.token) {
+            localStorage.setItem('token', data.token)
           }
 
           // Set user
@@ -111,6 +118,9 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        // Remove token from localStorage
+        localStorage.removeItem('token')
+        
         set({
           user: null,
           isAuthenticated: false,

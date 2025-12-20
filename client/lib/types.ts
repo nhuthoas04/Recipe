@@ -30,6 +30,8 @@ export interface Recipe {
   reviewNote?: string // Ghi chú từ admin khi từ chối
   isDeleted?: boolean // Trong thùng rác
   deletedAt?: Date
+  likesCount?: number // Số lượt thích
+  savesCount?: number // Số lượt lưu
 }
 
 export interface Ingredient {
@@ -73,6 +75,8 @@ export interface User {
   healthConditions?: string[] // ["tiểu đường", "cao huyết áp", "dị ứng hải sản", ...]
   dietaryPreferences?: string[] // ["ăn chay", "ít đường", "ít muối", ...]
   hasCompletedHealthProfile?: boolean // Đã hoàn thành profile chưa
+  savedRecipes?: string[] // Danh sách ID recipes đã lưu
+  likedRecipes?: string[] // Danh sách ID recipes đã thích
 }
 
 export interface Comment {

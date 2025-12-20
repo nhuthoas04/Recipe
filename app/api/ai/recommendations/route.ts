@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
+    const db = client.db("goiymonan")
 
     // Lấy tất cả recipes đã approved và chưa xóa
     const allRecipes = await db
@@ -100,20 +100,24 @@ export async function POST(request: Request) {
           }
         }
 
-        return score > 0
-          ? {
-              ...recipe,
-              _id: recipe._id.toString(),
-              recommendationScore: score,
-              recommendationReasons: reasons,
-            }
-          : null
+        return {
+          ...recipe,
+          _id: recipe._id.toString(),
+          recommendationScore: score,
+          recommendationReasons: reasons.length > 0 ? reasons : ["Công thức phổ biến"],
+        }
       })
       .filter(Boolean)
-      .sort((a: any, b: any) => b.recommendationScore - a.recommendationScore)
+      .sort((a: any, b: any) => {
+        // Ưu tiên theo score, nếu bằng nhau thì theo likesCount
+        if (b.recommendationScore !== a.recommendationScore) {
+          return b.recommendationScore - a.recommendationScore
+        }
+        return (b.likesCount || 0) - (a.likesCount || 0)
+      })
       .slice(0, 10) // Top 10 recommendations
 
-    // Format recipes
+    // Format recipes với likes và saves count từ database
     const formattedRecipes = recommendedRecipes.map((recipe: any) => ({
       id: recipe._id,
       name: recipe.name,
@@ -134,6 +138,8 @@ export async function POST(request: Request) {
       notSuitableFor: recipe.notSuitableFor,
       recommendationScore: recipe.recommendationScore,
       recommendationReasons: recipe.recommendationReasons,
+      likesCount: recipe.likesCount || 0,
+      savesCount: recipe.savesCount || 0,
     }))
 
     return NextResponse.json({

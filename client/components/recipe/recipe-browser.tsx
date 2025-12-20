@@ -44,8 +44,25 @@ export function RecipeBrowser() {
     getFilteredRecipes,
   } = useRecipeStore()
 
+  // Load recipes từ database khi component mount
   useEffect(() => {
     setMounted(true)
+    
+    const loadRecipes = async () => {
+      try {
+        console.log('Loading recipes from API...')
+        const res = await fetch('/api/recipes')
+        const data = await res.json()
+        console.log('Recipes loaded:', data.recipes?.length, 'Sample:', data.recipes?.[0]?.name, 'likes:', data.recipes?.[0]?.likesCount)
+        if (data.success && data.recipes) {
+          useRecipeStore.setState({ recipes: data.recipes })
+        }
+      } catch (error) {
+        console.error('Error loading recipes:', error)
+      }
+    }
+    
+    loadRecipes()
   }, [])
 
   const filteredRecipes = mounted ? getFilteredRecipes() : []
@@ -83,62 +100,57 @@ export function RecipeBrowser() {
         )}
       </div>
 
-      {/* Search and Filters */}
-      <div className="space-y-4">
-        <div className="relative max-w-2xl mx-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Tìm kiếm món ăn, nguyên liệu..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 text-base"
-          />
+      {/* AI Recommendations - Hiển thị nếu user đã hoàn thành health profile */}
+      {isAuthenticated && user && (
+        <>
+          {user.hasCompletedHealthProfile ? (
+            <AIRecommendations
+              userId={user.id}
+              age={user.age}
+              healthConditions={user.healthConditions}
+              dietaryPreferences={user.dietaryPreferences}
+            />
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              Vui lòng hoàn thành thông tin sức khỏe để nhận gợi ý món ăn phù hợp
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Filters - Moved below AI Recommendations */}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <Button
+              key={category.label}
+              variant={selectedCategory === category.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category.value)}
+            >
+              {category.label}
+            </Button>
+          ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category.label}
-                variant={selectedCategory === category.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category.value)}
-              >
-                {category.label}
-              </Button>
-            ))}
-          </div>
+        <div className="w-px h-6 bg-border" />
 
-          <div className="w-px h-6 bg-border" />
-
-          <div className="flex flex-wrap gap-2">
-            {cuisines.map((cuisine) => (
-              <Button
-                key={cuisine.label}
-                variant={selectedCuisine === cuisine.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCuisine(cuisine.value)}
-              >
-                {cuisine.label}
-              </Button>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-2">
+          {cuisines.map((cuisine) => (
+            <Button
+              key={cuisine.label}
+              variant={selectedCuisine === cuisine.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCuisine(cuisine.value)}
+            >
+              {cuisine.label}
+            </Button>
+          ))}
         </div>
       </div>
 
-      {/* AI Recommendations - Hiển thị nếu user đã hoàn thành health profile */}
-      {isAuthenticated && user && user.hasCompletedHealthProfile && (
-        <AIRecommendations
-          userId={user.id}
-          age={user.age}
-          healthConditions={user.healthConditions}
-          dietaryPreferences={user.dietaryPreferences}
-        />
-      )}
-
       {/* Results Count */}
-      <div className="text-center text-sm text-muted-foreground">Tìm thấy {filteredRecipes.length} công thức</div>
+      <div id="all-recipes" className="text-center text-sm text-muted-foreground">Tìm thấy {filteredRecipes.length} công thức</div>
 
       {/* Recipe Grid */}
       {filteredRecipes.length > 0 ? (

@@ -9,8 +9,10 @@ import {
   User,
   LogOut,
   Shield,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useRecipeStore } from "@/lib/recipe-store";
 import { useAuthStore } from "@/lib/auth-store";
 
@@ -28,10 +30,10 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-card">
+    <header className="sticky top-0 z-50 border-b bg-card shadow-sm">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <ChefHat className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-2xl font-bold text-primary">Bếp Nhà</h1>
@@ -41,7 +43,21 @@ export function Header() {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-2">
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md mx-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Tìm kiếm món ăn, nguyên liệu..."
+                value={useRecipeStore.getState().searchQuery}
+                onChange={(e) => useRecipeStore.getState().setSearchQuery(e.target.value)}
+                className="pl-9 h-10 text-sm"
+              />
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-2 flex-shrink-0">
             <Button variant="ghost" asChild>
               <Link href="/">
                 <ChefHat className="mr-2 h-4 w-4" />

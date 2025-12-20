@@ -3,6 +3,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Custom Scrollbar Styles */
+.custom-scrollbar {
+  overflow-x: scroll !important;
+  scrollbar-width: auto !important;
+  scrollbar-color: #3d6b5a #e5e7eb !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 14px !important;
+  display: block !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e5e7eb !important;
+  border-radius: 10px !important;
+  margin: 0 10px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3d6b5a !important;
+  border-radius: 10px !important;
+  border: 3px solid #e5e7eb !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2d5a4a !important;
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -10,7 +38,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.42 0.1 160);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -31,7 +59,7 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.42 0.1 160);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);

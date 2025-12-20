@@ -508,15 +508,14 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
           {/* Health Tags */}
           <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
             <div>
-              <Label className="text-base font-semibold">🏥 Thông Tin Sức Khỏe</Label>
-              <p className="text-sm text-muted-foreground">Giúp người dùng tìm món ăn phù hợp với tình trạng sức khỏe</p>
+              <Label className="text-base font-semibold">Thông Tin Sức Khỏe</Label>
             </div>
 
             {/* Đặc điểm dinh dưỡng */}
             <div>
               <Label className="text-sm font-medium">Đặc điểm dinh dưỡng</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {["Ít đường", "Ít muối", "Ít dầu mỡ", "Giàu protein", "Giàu chất xơ", "Ít đạm", "Không cay", "Không rượu", "Ăn chay"].map((tag) => (
+                {["Ít đường", "Ít muối", "Ít dầu mỡ", "Giàu protein", "Giàu đạm", "Giàu chất xơ", "Ít đạm", "Không cay", "Không rượu", "Ăn chay", "Ít calo", "Giàu calo", "Nhiều vitamin", "Giàu canxi", "Giàu sắt", "Giàu omega-3", "Không cholesterol", "Không lactose", "Ít natri", "Giàu kali", "Giàu chất chống oxi hóa"].map((tag) => (
                   <span
                     key={tag}
                     onClick={() => {
@@ -542,7 +541,7 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
             <div>
               <Label className="text-sm font-medium text-green-700">✓ Phù hợp cho</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {["Tiểu đường", "Cao huyết áp", "Cholesterol cao", "Bệnh tim", "Bệnh thận", "Béo phì", "Gầy", "Trẻ em", "Người cao tuổi"].map((tag) => (
+                {["Tiểu đường", "Cao huyết áp", "Cholesterol cao", "Bệnh tim", "Bệnh thận", "Béo phì", "Gầy", "Trẻ em", "Người cao tuổi", "Phụ nữ mang thai", "Phụ nữ cho con bú", "Người ăn chay", "Vận động viên", "Người gầy cần tăng cân", "Người muốn giảm cân", "Người thiếu máu", "Xương khớp yếu", "Tiêu hóa kém", "Suy giảm miễn dịch", "Người đang hồi sức sau bệnh"].map((tag) => (
                   <span
                     key={tag}
                     onClick={() => {
@@ -568,7 +567,7 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
             <div>
               <Label className="text-sm font-medium text-red-700">✗ Không phù hợp cho</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {["Dị ứng hải sản", "Dị ứng đậu phộng", "Dị ứng gluten", "Dị ứng sữa", "Dị ứng trứng"].map((tag) => (
+                {["Dị ứng hải sản", "Dị ứng đậu phộng", "Dị ứng gluten", "Dị ứng sữa", "Dị ứng trứng", "Dị ứng các loại hạt", "Dị ứng đậu nành", "Dị ứng cá", "Dị ứng tôm cua", "Dị ứng gừng", "Tiểu đường", "Béo phì", "Cao huyết áp", "Cholesterol cao", "Người mỡ máu cao", "Bệnh tim", "Người bệnh thận", "Bệnh Gout", "Viêm loét dạ dày", "Bệnh gan", "Đang dùng thuốc chống đông máu", "Trẻ dưới 1 tuổi", "Người sau phẫu thuật tiêu hóa"].map((tag) => (
                   <span
                     key={tag}
                     onClick={() => {
@@ -580,8 +579,8 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
                     }}
                     className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${
                       formData.notSuitableFor.includes(tag)
-                        ? "bg-red-500 text-white"
-                        : "bg-red-50 text-red-700 hover:bg-red-100"
+                        ? "bg-green-600 text-white"
+                        : "bg-green-50 text-green-700 hover:bg-green-100"
                     }`}
                   >
                     {tag}
@@ -593,8 +592,7 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
 
           {/* Nutrition */}
           <div>
-            <Label className="text-base font-semibold">Dinh Dưỡng (tùy chọn)</Label>
-            <p className="text-sm text-muted-foreground mb-3">Thông tin dinh dưỡng cho 1 khẩu phần</p>
+            <Label className="text-base font-semibold">Dinh Dưỡng</Label>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="calories" className="text-sm">Calories (kcal)</Label>

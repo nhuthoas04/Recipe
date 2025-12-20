@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
       healthConditions: user.healthConditions || [],
       dietaryPreferences: user.dietaryPreferences || [],
       hasCompletedHealthProfile: user.hasCompletedHealthProfile || false,
+      savedRecipes: (user.savedRecipes || []).map((id: any) => id.toString()),
+      likedRecipes: (user.likedRecipes || []).map((id: any) => id.toString()),
     }
 
     // Tạo JWT token

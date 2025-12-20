@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { X, Clock, Users, ChefHat, Plus, Send, Trash2, Edit2, MessageCircle } from "lucide-react"
+import { X, Clock, Users, ChefHat, Plus, Send, Trash2, Edit2, MessageCircle, Heart, Bookmark } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,19 +23,31 @@ interface RecipeDetailDialogProps {
 
 export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps) {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, updateUser } = useAuthStore()
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState("")
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState("")
   const [loading, setLoading] = useState(false)
+  
+  // Like and Save states
+  const [isLiked, setIsLiked] = useState(user?.likedRecipes?.includes(recipe?.id || '') || false)
+  const [isSaved, setIsSaved] = useState(user?.savedRecipes?.includes(recipe?.id || '') || false)
+  const [likesCount, setLikesCount] = useState(recipe?.likesCount || 0)
+  const [savesCount, setSavesCount] = useState(recipe?.savesCount || 0)
+  const [isLiking, setIsLiking] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  // Load comments
+  // Load comments and update like/save states
   useEffect(() => {
     if (recipe?.id) {
       loadComments()
+      setIsLiked(user?.likedRecipes?.includes(recipe.id) || false)
+      setIsSaved(user?.savedRecipes?.includes(recipe.id) || false)
+      setLikesCount(recipe.likesCount || 0)
+      setSavesCount(recipe.savesCount || 0)
     }
-  }, [recipe?.id])
+  }, [recipe?.id, user?.likedRecipes, user?.savedRecipes])
 
   const loadComments = async () => {
     if (!recipe?.id) return
@@ -47,6 +59,96 @@ export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps)
       }
     } catch (error) {
       console.error("Error loading comments:", error)
+    }
+  }
+
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để thích công thức')
+      return
+    }
+
+    if (isLiking) return
+    setIsLiking(true)
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/user/like-recipe', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipeId: recipe?.id }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setIsLiked(data.isLiked)
+        setLikesCount(data.likesCount)
+        
+        if (user) {
+          updateUser({
+            ...user,
+            likedRecipes: data.likedRecipes
+          })
+        }
+        
+        toast.success(data.isLiked ? 'Đã thích công thức' : 'Đã bỏ thích')
+      } else {
+        toast.error(data.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Like error:', error)
+      toast.error('Có lỗi xảy ra')
+    } finally {
+      setIsLiking(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để lưu công thức')
+      return
+    }
+
+    if (isSaving) return
+    setIsSaving(true)
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/user/save-recipe', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipeId: recipe?.id }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setIsSaved(data.isSaved)
+        setSavesCount(data.savesCount)
+        
+        if (user) {
+          updateUser({
+            ...user,
+            savedRecipes: data.savedRecipes
+          })
+        }
+        
+        toast.success(data.isSaved ? 'Đã lưu công thức' : 'Đã bỏ lưu')
+      } else {
+        toast.error(data.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      toast.error('Có lỗi xảy ra')
+    } finally {
+      setIsSaving(false)
     }
   }
   
@@ -198,6 +300,31 @@ export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps)
                   <Badge variant="secondary">{recipe.cuisine}</Badge>
                 </div>
                 <p className="text-muted-foreground text-pretty">{recipe.description}</p>
+                
+                {/* Like and Save buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleLike}
+                    disabled={isLiking}
+                    className="gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                  >
+                    <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    <span className="font-medium">{likesCount} Thích</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                  >
+                    <Bookmark className={`h-5 w-5 ${isSaved ? 'fill-blue-500 text-blue-500' : ''}`} />
+                    <span className="font-medium">{savesCount} Lưu</span>
+                  </Button>
+                </div>
               </div>
             </DialogHeader>
 
@@ -234,10 +361,7 @@ export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps)
             {(recipe.healthTags || recipe.suitableFor || recipe.notSuitableFor) && (
               <div className="rounded-lg border bg-purple-50/50 p-4 space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
-                  🏥 Thông Tin Sức Khỏe
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Giúp người dùng tìm món ăn phù hợp với tình trạng sức khỏe
-                  </span>
+                  Thông Tin Sức Khỏe
                 </h3>
 
                 {/* Đặc điểm dinh dưỡng */}
@@ -248,7 +372,7 @@ export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps)
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {recipe.healthTags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        <Badge key={tag} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                           {tag}
                         </Badge>
                       ))}
@@ -275,12 +399,12 @@ export function RecipeDetailDialog({ recipe, onClose }: RecipeDetailDialogProps)
                 {/* Không phù hợp cho */}
                 {recipe.notSuitableFor && recipe.notSuitableFor.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-red-700 mb-2">
+                    <p className="text-xs font-medium text-green-700 mb-2">
                       ✗ Không phù hợp cho
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {recipe.notSuitableFor.map((tag) => (
-                        <Badge key={tag} variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        <Badge key={tag} variant="outline" className="bg-green-50 text-green-700 border-green-200">
                           {tag}
                         </Badge>
                       ))}

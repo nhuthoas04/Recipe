@@ -13,6 +13,8 @@ export interface IUser extends Document {
   resetPasswordCode?: string;
   resetPasswordExpires?: Date;
   lastResetPasswordEmailSentAt?: Date;
+  savedRecipes: mongoose.Types.ObjectId[];
+  likedRecipes: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,7 +74,17 @@ const userSchema = new Schema<IUser>({
     type: Date,
     required: false,
     select: false
-  }
+  },
+  savedRecipes: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Recipe',
+    default: []
+  }],
+  likedRecipes: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Recipe',
+    default: []
+  }]
 }, {
   timestamps: true
 });
