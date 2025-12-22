@@ -312,21 +312,38 @@ export const useRecipeStore = create<RecipeStore>()(
       getFilteredRecipes: () => {
         const { recipes, searchQuery, selectedCategory, selectedCuisine, selectedDifficulty } = get()
 
+        // Tối ưu: nếu không có filter nào, trả về tất cả
+        if (!searchQuery && !selectedCategory && !selectedCuisine && !selectedDifficulty) {
+          return recipes
+        }
+
+        // Chuẩn hóa search query một lần
+        const normalizedSearch = searchQuery?.toLowerCase().trim()
+
         return recipes.filter((recipe) => {
-          const matchesSearch = searchQuery
-            ? recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              recipe.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-              recipe.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
-            : true
+          // Check category và cuisine trước (nhanh hơn)
+          if (selectedCategory && recipe.category !== selectedCategory) return false
+          if (selectedCuisine && recipe.cuisine !== selectedCuisine) return false
+          if (selectedDifficulty && recipe.difficulty !== selectedDifficulty) return false
 
-          const matchesCategory = selectedCategory ? recipe.category === selectedCategory : true
+          // Check search cuối cùng (chậm hơn)
+          if (normalizedSearch) {
+            const nameMatch = recipe.name.toLowerCase().includes(normalizedSearch)
+            if (nameMatch) return true
 
-          const matchesCuisine = selectedCuisine ? recipe.cuisine === selectedCuisine : true
+            const descMatch = recipe.description.toLowerCase().includes(normalizedSearch)
+            if (descMatch) return true
 
-          const matchesDifficulty = selectedDifficulty ? recipe.difficulty === selectedDifficulty : true
+            const tagMatch = recipe.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch))
+            if (tagMatch) return true
 
-          return matchesSearch && matchesCategory && matchesCuisine && matchesDifficulty
+            const difficultyMatch = recipe.difficulty.toLowerCase().includes(normalizedSearch)
+            if (difficultyMatch) return true
+
+            return false
+          }
+
+          return true
         })
       },
     }),

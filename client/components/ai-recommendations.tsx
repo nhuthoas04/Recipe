@@ -25,6 +25,11 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
                         (dietaryPreferences && dietaryPreferences.length > 0)
 
   const loadRecommendations = useCallback(async () => {
+    if (!hasHealthInfo) {
+      setLoading(false)
+      return
+    }
+    
     setLoading(true)
     try {
       const response = await fetch('/api/ai/recommendations', {
@@ -52,16 +57,12 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
     } finally {
       setLoading(false)
     }
-  }, [userId, age, healthConditions, dietaryPreferences])
+  }, [userId, age, healthConditions, dietaryPreferences, hasHealthInfo])
 
   useEffect(() => {
-    // Chỉ load khi có thông tin sức khỏe
-    if (hasHealthInfo) {
-      loadRecommendations()
-    } else {
-      setLoading(false)
-    }
-  }, [loadRecommendations, hasHealthInfo])
+    // Chỉ load một lần khi mount, không load lại khi dependencies thay đổi
+    loadRecommendations()
+  }, [])
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { memo, useState, useEffect } from "react"
 import Image from "next/image"
 import { Clock, Users, ChefHat, Heart, Bookmark } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -15,7 +15,7 @@ interface RecipeCardProps {
   onClick: () => void
 }
 
-export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
+function RecipeCardComponent({ recipe, onClick }: RecipeCardProps) {
   const totalTime = recipe.prepTime + recipe.cookTime
   const { user, isAuthenticated, updateUser } = useAuthStore()
   
@@ -217,3 +217,13 @@ export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
     </Card>
   )
 }
+
+// Sử dụng memo để tránh re-render không cần thiết
+export const RecipeCard = memo(RecipeCardComponent, (prevProps, nextProps) => {
+  // Chỉ re-render khi recipe.id hoặc likesCount/savesCount thay đổi
+  return prevProps.recipe.id === nextProps.recipe.id &&
+         prevProps.recipe.likesCount === nextProps.recipe.likesCount &&
+         prevProps.recipe.savesCount === nextProps.recipe.savesCount
+})
+
+RecipeCard.displayName = 'RecipeCard'

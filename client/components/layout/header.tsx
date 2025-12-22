@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -23,6 +24,18 @@ export function Header() {
   const shoppingList = useRecipeStore((state) => state.shoppingList);
   const mealPlans = useRecipeStore((state) => state.mealPlans);
   const { user, isAuthenticated, logout } = useAuthStore();
+  
+  // Local state cho search input để debounce
+  const [searchInput, setSearchInput] = useState(useRecipeStore.getState().searchQuery);
+  
+  // Debounce search - chỉ update store sau 300ms không gõ
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      useRecipeStore.getState().setSearchQuery(searchInput);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleLogout = () => {
     logout();
@@ -50,8 +63,8 @@ export function Header() {
               <Input
                 type="search"
                 placeholder="Tìm kiếm món ăn, nguyên liệu..."
-                value={useRecipeStore.getState().searchQuery}
-                onChange={(e) => useRecipeStore.getState().setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-9 h-10 text-sm"
               />
             </div>

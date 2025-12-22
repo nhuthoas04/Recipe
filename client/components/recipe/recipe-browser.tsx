@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Search, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -33,16 +33,16 @@ export function RecipeBrowser() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [mounted, setMounted] = useState(false)
   const [isContributeDialogOpen, setIsContributeDialogOpen] = useState(false)
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(true)
   const { isAuthenticated, user } = useAuthStore()
-  const {
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    selectedCuisine,
-    setSelectedCuisine,
-    getFilteredRecipes,
-  } = useRecipeStore()
+  
+  // Chỉ lấy những giá trị cần thiết từ store để tránh re-render
+  const searchQuery = useRecipeStore((state) => state.searchQuery)
+  const selectedCategory = useRecipeStore((state) => state.selectedCategory)
+  const selectedCuisine = useRecipeStore((state) => state.selectedCuisine)
+  const setSelectedCategory = useRecipeStore((state) => state.setSelectedCategory)
+  const setSelectedCuisine = useRecipeStore((state) => state.setSelectedCuisine)
+  const getFilteredRecipes = useRecipeStore((state) => state.getFilteredRecipes)
 
   // Load recipes từ database khi component mount
   useEffect(() => {
@@ -50,22 +50,29 @@ export function RecipeBrowser() {
     
     const loadRecipes = async () => {
       try {
+        setIsLoadingRecipes(true)
         console.log('Loading recipes from API...')
         const res = await fetch('/api/recipes')
         const data = await res.json()
-        console.log('Recipes loaded:', data.recipes?.length, 'Sample:', data.recipes?.[0]?.name, 'likes:', data.recipes?.[0]?.likesCount)
+        console.log('Recipes loaded:', data.recipes?.length)
         if (data.success && data.recipes) {
           useRecipeStore.setState({ recipes: data.recipes })
         }
       } catch (error) {
         console.error('Error loading recipes:', error)
+      } finally {
+        setIsLoadingRecipes(false)
       }
     }
     
     loadRecipes()
   }, [])
 
-  const filteredRecipes = mounted ? getFilteredRecipes() : []
+  // Sử dụng useMemo để cache filtered recipes
+  const filteredRecipes = useMemo(() => {
+    if (!mounted) return [];
+    return getFilteredRecipes();
+  }, [mounted, searchQuery, selectedCategory, selectedCuisine, getFilteredRecipes]);
 
   const handleContributeClose = async () => {
     setIsContributeDialogOpen(false)
@@ -100,8 +107,8 @@ export function RecipeBrowser() {
         )}
       </div>
 
-      {/* AI Recommendations - Hiển thị nếu user đã hoàn thành health profile */}
-      {isAuthenticated && user && (
+      {/* AI Recommendations - Chỉ hiển thị khi KHÔNG tìm kiếm */}
+      {isAuthenticated && user && !searchQuery && (
         <>
           {user.hasCompletedHealthProfile ? (
             <AIRecommendations
@@ -150,10 +157,16 @@ export function RecipeBrowser() {
       </div>
 
       {/* Results Count */}
-      <div id="all-recipes" className="text-center text-sm text-muted-foreground">Tìm thấy {filteredRecipes.length} công thức</div>
+      <div id="all-recipes" className="text-center text-sm text-muted-foreground">
+        {isLoadingRecipes ? 'Đang tải...' : `Tìm thấy ${filteredRecipes.length} công thức`}
+      </div>
 
       {/* Recipe Grid */}
-      {filteredRecipes.length > 0 ? (
+      {isLoadingRecipes ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : filteredRecipes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredRecipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} onClick={() => setSelectedRecipe(recipe)} />
