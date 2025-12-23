@@ -37,6 +37,7 @@ export function RecipeBrowser() {
   const { isAuthenticated, user } = useAuthStore()
   
   // Chỉ lấy những giá trị cần thiết từ store để tránh re-render
+  const recipes = useRecipeStore((state) => state.recipes)
   const searchQuery = useRecipeStore((state) => state.searchQuery)
   const selectedCategory = useRecipeStore((state) => state.selectedCategory)
   const selectedCuisine = useRecipeStore((state) => state.selectedCuisine)
@@ -72,7 +73,7 @@ export function RecipeBrowser() {
   const filteredRecipes = useMemo(() => {
     if (!mounted) return [];
     return getFilteredRecipes();
-  }, [mounted, searchQuery, selectedCategory, selectedCuisine, getFilteredRecipes]);
+  }, [mounted, recipes, searchQuery, selectedCategory, selectedCuisine, getFilteredRecipes]);
 
   const handleContributeClose = async () => {
     setIsContributeDialogOpen(false)
