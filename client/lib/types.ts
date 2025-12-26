@@ -32,6 +32,7 @@ export interface Recipe {
   deletedAt?: Date
   likesCount?: number // Số lượt thích
   savesCount?: number // Số lượt lưu
+  commentsCount?: number // Số bình luận
 }
 
 export interface Ingredient {

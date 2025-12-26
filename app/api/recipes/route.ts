@@ -7,16 +7,17 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDatabase()
     const recipesCollection = db.collection('recipes')
-    
+    const commentsCollection = db.collection('comments')
+
     // Lấy tham số filter
     const status = request.nextUrl.searchParams.get('status')
     const includeAll = request.nextUrl.searchParams.get('includeAll') === 'true'
 
     let query: any = {}
-    
+
     // Nếu không phải admin (includeAll=false), chỉ lấy recipes đã approved và không bị xóa
     if (!includeAll) {
-      query = { 
+      query = {
         $and: [
           { $or: [{ status: 'approved' }, { status: { $exists: false } }] },
           { $or: [{ isDeleted: { $ne: true } }, { isDeleted: { $exists: false } }] }
@@ -29,12 +30,25 @@ export async function GET(request: NextRequest) {
 
     const recipes = await recipesCollection.find(query).sort({ createdAt: -1 }).toArray()
 
+    // Get all comment counts in one query (batch instead of N queries)
+    const recipeIds = recipes.map(r => r._id.toString())
+    const commentCounts = await commentsCollection.aggregate([
+      { $match: { recipeId: { $in: recipeIds } } },
+      { $group: { _id: "$recipeId", count: { $sum: 1 } } }
+    ]).toArray()
+
+    // Create a map for quick lookup
+    const commentCountMap = new Map(
+      commentCounts.map(c => [c._id, c.count])
+    )
+
     return NextResponse.json({
       success: true,
       recipes: recipes.map((recipe) => ({
         ...recipe,
         id: recipe._id.toString(),
         _id: undefined,
+        commentsCount: commentCountMap.get(recipe._id.toString()) || 0,
       })),
     })
   } catch (error) {
@@ -109,7 +123,7 @@ export async function PUT(request: NextRequest) {
 
     // Lấy recipe cũ để giữ nguyên status và các field quan trọng
     const existingRecipe = await recipesCollection.findOne({ _id: new ObjectId(recipe.id) })
-    
+
     if (!existingRecipe) {
       return NextResponse.json(
         { success: false, error: 'Recipe not found' },
@@ -122,15 +136,15 @@ export async function PUT(request: NextRequest) {
     // Cập nhật nhưng GIỮ NGUYÊN status, authorId, authorEmail, createdAt
     await recipesCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
+      {
+        $set: {
           ...recipeData,
           status: existingRecipe.status, // Giữ nguyên status
           authorId: existingRecipe.authorId, // Giữ nguyên author
           authorEmail: existingRecipe.authorEmail,
           createdAt: existingRecipe.createdAt, // Giữ nguyên createdAt
-          updatedAt: new Date() 
-        } 
+          updatedAt: new Date()
+        }
       }
     )
 
@@ -164,11 +178,11 @@ export async function DELETE(request: NextRequest) {
       // Chuyển vào thùng rác (soft delete)
       await recipesCollection.updateOne(
         { _id: new ObjectId(id) },
-        { 
-          $set: { 
-            isDeleted: true, 
-            deletedAt: new Date() 
-          } 
+        {
+          $set: {
+            isDeleted: true,
+            deletedAt: new Date()
+          }
         }
       )
     } else {

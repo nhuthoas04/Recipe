@@ -49,14 +49,13 @@ Thêm các endpoints mới trong `backend/src/routes/users.ts`:
    Response: { success, recipes: Recipe[] }
    ```
 
-### 2. Frontend Changes
+### 2. Frontend API Routes (Next.js)
 
-#### Next.js API Routes
-Tạo các proxy routes trong `app/api/user/`:
-- `like-recipe/route.ts` - Forward request đến backend
-- `save-recipe/route.ts` - Forward request đến backend
-- `liked-recipes/route.ts` - Forward request đến backend
-- `saved-recipes/route.ts` - Forward request đến backend
+Các API routes trong `app/api/user/` sử dụng MongoDB trực tiếp:
+- `like-recipe/route.ts` - Like/Unlike recipe trực tiếp với MongoDB
+- `save-recipe/route.ts` - Save/Unsave recipe trực tiếp với MongoDB
+- `liked-recipes/route.ts` - Lấy danh sách recipes đã thích
+- `saved-recipes/route.ts` - Lấy danh sách recipes đã lưu
 
 #### Components
 

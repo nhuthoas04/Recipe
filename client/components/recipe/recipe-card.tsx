@@ -23,7 +23,7 @@ function RecipeCardComponent({ recipe, onClick }: RecipeCardProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [likesCount, setLikesCount] = useState(recipe.likesCount || 0)
   const [savesCount, setSavesCount] = useState(recipe.savesCount || 0)
-  const [commentsCount, setCommentsCount] = useState(0)
+  const [commentsCount, setCommentsCount] = useState(recipe.commentsCount || 0)
   const [isLiking, setIsLiking] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -39,24 +39,8 @@ function RecipeCardComponent({ recipe, onClick }: RecipeCardProps) {
   useEffect(() => {
     setLikesCount(recipe.likesCount || 0)
     setSavesCount(recipe.savesCount || 0)
-  }, [recipe.likesCount, recipe.savesCount])
-
-  // Load comments count
-  useEffect(() => {
-    const loadCommentsCount = async () => {
-      if (!recipe.id) return
-      try {
-        const res = await fetch(`/api/comments?recipeId=${recipe.id}&countOnly=true`)
-        const data = await res.json()
-        if (data.success) {
-          setCommentsCount(data.count || 0)
-        }
-      } catch (error) {
-        console.error("Error loading comments count:", error)
-      }
-    }
-    loadCommentsCount()
-  }, [recipe.id])
+    setCommentsCount(recipe.commentsCount || 0)
+  }, [recipe.likesCount, recipe.savesCount, recipe.commentsCount])
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -248,10 +232,11 @@ function RecipeCardComponent({ recipe, onClick }: RecipeCardProps) {
 
 // Sử dụng memo để tránh re-render không cần thiết
 export const RecipeCard = memo(RecipeCardComponent, (prevProps, nextProps) => {
-  // Chỉ re-render khi recipe.id hoặc likesCount/savesCount thay đổi
+  // Re-render khi recipe.id hoặc likesCount/savesCount/commentsCount thay đổi
   return prevProps.recipe.id === nextProps.recipe.id &&
          prevProps.recipe.likesCount === nextProps.recipe.likesCount &&
-         prevProps.recipe.savesCount === nextProps.recipe.savesCount
+         prevProps.recipe.savesCount === nextProps.recipe.savesCount &&
+         prevProps.recipe.commentsCount === nextProps.recipe.commentsCount
 })
 
 RecipeCard.displayName = 'RecipeCard'

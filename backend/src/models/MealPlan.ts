@@ -4,10 +4,10 @@ export interface IMealPlan extends Document {
   userId: mongoose.Types.ObjectId;
   date: Date;
   meals: {
-    breakfast?: mongoose.Types.ObjectId;
-    lunch?: mongoose.Types.ObjectId;
-    dinner?: mongoose.Types.ObjectId;
-    snack?: mongoose.Types.ObjectId;
+    breakfast: mongoose.Types.ObjectId[];
+    lunch: mongoose.Types.ObjectId[];
+    dinner: mongoose.Types.ObjectId[];
+    snack: mongoose.Types.ObjectId[];
   };
   createdAt: Date;
   updatedAt: Date;
@@ -24,22 +24,22 @@ const mealPlanSchema = new Schema<IMealPlan>({
     required: true
   },
   meals: {
-    breakfast: {
+    breakfast: [{
       type: Schema.Types.ObjectId,
       ref: 'Recipe'
-    },
-    lunch: {
+    }],
+    lunch: [{
       type: Schema.Types.ObjectId,
       ref: 'Recipe'
-    },
-    dinner: {
+    }],
+    dinner: [{
       type: Schema.Types.ObjectId,
       ref: 'Recipe'
-    },
-    snack: {
+    }],
+    snack: [{
       type: Schema.Types.ObjectId,
       ref: 'Recipe'
-    }
+    }]
   }
 }, {
   timestamps: true

@@ -15,11 +15,12 @@ export async function POST(request: Request) {
 
     const client = await clientPromise
     const db = client.db("goiymonan")
+    const commentsCollection = db.collection("comments")
 
     // Lấy tất cả recipes đã approved và chưa xóa
     const allRecipes = await db
       .collection("recipes")
-      .find({ 
+      .find({
         status: { $in: ["approved", null] },
         isDeleted: { $ne: true }
       })
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
         // Kiểm tra health tags
         if (recipe.healthTags && dietaryPreferences) {
           const matchingHealthTags = recipe.healthTags.filter((tag: string) =>
-            dietaryPreferences.some((pref: string) => 
+            dietaryPreferences.some((pref: string) =>
               tag.toLowerCase().includes(pref.toLowerCase()) ||
               pref.toLowerCase().includes(tag.toLowerCase())
             )
@@ -117,7 +118,18 @@ export async function POST(request: Request) {
       })
       .slice(0, 10) // Top 10 recommendations
 
-    // Format recipes với likes và saves count từ database
+    // Get comment counts for recommended recipes (batch query)
+    const recipeIds = recommendedRecipes.map((r: any) => r._id)
+    const commentCounts = await commentsCollection.aggregate([
+      { $match: { recipeId: { $in: recipeIds } } },
+      { $group: { _id: "$recipeId", count: { $sum: 1 } } }
+    ]).toArray()
+
+    const commentCountMap = new Map(
+      commentCounts.map(c => [c._id, c.count])
+    )
+
+    // Format recipes với likes, saves và comments count
     const formattedRecipes = recommendedRecipes.map((recipe: any) => ({
       id: recipe._id,
       name: recipe.name,
@@ -140,6 +152,7 @@ export async function POST(request: Request) {
       recommendationReasons: recipe.recommendationReasons,
       likesCount: recipe.likesCount || 0,
       savesCount: recipe.savesCount || 0,
+      commentsCount: commentCountMap.get(recipe._id) || 0,
     }))
 
     return NextResponse.json({
@@ -155,3 +168,4 @@ export async function POST(request: Request) {
     )
   }
 }
+

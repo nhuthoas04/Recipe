@@ -6,7 +6,7 @@
 recipe/
 ├── app/           # 📱 Next.js Pages & API Routes
 ├── client/        # 💻 Frontend Components & Logic
-├── backend/       # ⚙️ Express.js Backend (chưa tích hợp)
+├── backend/       # ⚙️ Express.js Backend API
 ├── .next/         # 🔨 Build output (auto-generated)
 └── node_modules/  # 📦 Dependencies (auto-generated)
 ```
@@ -136,7 +136,7 @@ client/
 
 ## ⚙️ **backend/** - Express.js Backend
 
-**Mục đích:** RESTful API Server (chưa tích hợp với frontend)
+**Mục đích:** RESTful API Server chạy trên port 5000
 
 ### **Cấu trúc:**
 ```
@@ -163,7 +163,7 @@ backend/
 - **Frontend:** `client/components/auth/*`
 - **Store:** `client/lib/auth-store.ts`
 - **API:** `app/api/auth/*`
-- **Backend:** `backend/src/routes/auth.ts` (chưa dùng)
+- **Backend:** `backend/src/routes/auth.ts`
 
 ### **🍽️ Recipes:**
 - **Frontend:** `client/components/recipe/*`
@@ -265,10 +265,10 @@ backend/
 ✅ Frontend: Next.js 15 + React 19 + TypeScript
 ✅ State: Zustand stores
 ✅ UI: shadcn/ui + Tailwind CSS
-✅ Database: MongoDB (direct connection)
-✅ API: Next.js API Routes
+✅ Database: MongoDB Atlas (Cloud)
+✅ API: Next.js API Routes + Express.js Backend
 ✅ Auth: JWT + bcryptjs
-⏸️ Backend: Express.js (ready but not used)
+✅ Docker: docker-compose deployment
 ```
 
 **Import paths:** `@/*` → `client/*`

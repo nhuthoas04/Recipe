@@ -49,6 +49,7 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
           ...recipe,
           likesCount: recipe.likesCount || 0,
           savesCount: recipe.savesCount || 0,
+          commentsCount: recipe.commentsCount || 0,
         }))
         setRecommendations(formattedRecipes)
       }

@@ -25,6 +25,12 @@ const HEALTH_CONDITIONS = [
   "Bệnh thận",
   "Béo phì",
   "Gầy",
+  "Người mỡ máu cao",
+  "Bệnh Gout",
+  "Viêm loét dạ dày",
+  "Bệnh gan",
+  "Người thiếu máu",
+  "Suy giảm miễn dịch",
 ]
 
 const DIETARY_PREFERENCES = [
@@ -36,6 +42,11 @@ const DIETARY_PREFERENCES = [
   "Ít đạm",
   "Không cay",
   "Không rượu bia",
+  "Giàu chất xơ",
+  "Ít calo",
+  "Giàu canxi",
+  "Giàu sắt",
+  "Không lactose",
 ]
 
 export function HealthProfileDialog({ open, onComplete }: HealthProfileDialogProps) {

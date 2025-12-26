@@ -6,7 +6,7 @@
 recipe/
 ├── app/                  # 📱 Next.js App Router (Pages & API Routes)
 ├── client/               # 💻 Frontend Code (Components, Libs, Styles)
-├── backend/              # ⚙️ Express.js Backend (chưa sử dụng)
+├── backend/              # ⚙️ Express.js Backend API
 ├── scripts/              # 🛠️ Setup scripts
 ├── node_modules/         # 📦 Dependencies
 └── [config files]        # ⚙️ Config files
@@ -90,7 +90,7 @@ recipe/
 
 ## ⚙️ **backend/** - Express.js Backend
 
-**Trạng thái:** RESTful API đầy đủ chức năng (có thể dùng thay thế Next.js API Routes)
+**Trạng thái:** RESTful API đầy đủ chức năng, được sử dụng song song với Next.js API Routes
 
 ```
 backend/
@@ -183,10 +183,11 @@ npm run start            # Start production server
 - **Database:** MongoDB 6.20.0
 - **Auth:** JWT + bcryptjs
 
-### Backend (chưa dùng):
+### Backend:
 - **Framework:** Express.js
 - **Language:** TypeScript
 - **Database:** MongoDB with Mongoose
+- **Services:** Email service (forgot password)
 
 ---
 
@@ -194,5 +195,6 @@ npm run start            # Start production server
 
 1. **App Router ở root:** Next.js yêu cầu thư mục `app` ở root hoặc `src`
 2. **Client folder:** Chứa tất cả frontend code (components, libs)
-3. **Backend folder:** Đã tạo nhưng chưa tích hợp vào hệ thống
-4. **API Routes:** Hiện dùng Next.js API Routes (trong `app/api`)
+3. **Backend folder:** Express.js API server chạy trên port 5000
+4. **API Routes:** Sử dụng Next.js API Routes (trong `app/api`) cho most operations
+5. **Docker:** Hỗ trợ deployment với docker-compose

@@ -31,7 +31,6 @@ export default clientPromise
 
 export async function getDatabase(): Promise<Db> {
   const client = await clientPromise
-  // Lấy tên database từ connection string, hoặc dùng 'recipe' mặc định
-  const dbName = process.env.MONGODB_URI?.split('/').pop()?.split('?')[0] || 'recipe'
-  return client.db(dbName)
+  // Sử dụng database name cố định
+  return client.db('goiymonan')
 }

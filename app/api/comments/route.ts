@@ -17,18 +17,18 @@ export async function GET(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
-    
+    const db = client.db("goiymonan")
+
     // Nếu chỉ cần đếm số lượng
     if (countOnly === "true") {
       const count = await db
         .collection("comments")
         .countDocuments({ recipeId, parentId: { $exists: false } })
-      
+
       const repliesCount = await db
         .collection("comments")
         .countDocuments({ recipeId, parentId: { $exists: true } })
-      
+
       return NextResponse.json({
         success: true,
         count: count + repliesCount,
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         repliesCount: repliesCount,
       })
     }
-    
+
     // Lấy tất cả comments (cả parent và replies)
     const allComments = await db
       .collection("comments")
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
+    const db = client.db("goiymonan")
 
     // Nếu là reply, kiểm tra parent comment có tồn tại không
     if (parentId) {
@@ -185,7 +185,7 @@ export async function DELETE(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
+    const db = client.db("goiymonan")
 
     // Kiểm tra comment có tồn tại không
     const comment = await db.collection("comments").findOne({
@@ -261,7 +261,7 @@ export async function PUT(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
+    const db = client.db("goiymonan")
 
     // Kiểm tra comment có tồn tại và thuộc về user không
     const comment = await db.collection("comments").findOne({
@@ -319,7 +319,7 @@ export async function PATCH(request: Request) {
     }
 
     const client = await clientPromise
-    const db = client.db("recipe-app")
+    const db = client.db("goiymonan")
 
     const comment = await db.collection("comments").findOne({
       _id: new ObjectId(commentId),
@@ -334,7 +334,7 @@ export async function PATCH(request: Request) {
 
     const currentLikes = comment.likes || []
     const hasLiked = currentLikes.includes(userId)
-    
+
     let updateOperation
     if (hasLiked) {
       // Unlike - remove userId from likes array

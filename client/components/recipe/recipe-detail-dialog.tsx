@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { X, Clock, Users, ChefHat, Plus, Send, Trash2, Edit2, MessageCircle, Heart, Bookmark, Reply, ThumbsUp, ChevronDown, ChevronUp } from "lucide-react"
+import { AddToMealPlanDialog } from "@/components/meal/add-to-meal-plan-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import type { Recipe, Comment } from "@/lib/types"
 import { useAuthStore } from "@/lib/auth-store"
+import { useRecipeStore } from "@/lib/recipe-store"
 import toast from "react-hot-toast"
 import { formatDistanceToNow } from "date-fns"
 import { vi } from "date-fns/locale"
@@ -25,6 +27,7 @@ interface RecipeDetailDialogProps {
 export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeDetailDialogProps) {
   const router = useRouter()
   const { user, isAuthenticated, updateUser } = useAuthStore()
+  const updateRecipeCommentsCount = useRecipeStore((state) => state.updateRecipeCommentsCount)
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState("")
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
@@ -43,6 +46,9 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
   const [savesCount, setSavesCount] = useState(recipe?.savesCount || 0)
   const [isLiking, setIsLiking] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Add to meal plan dialog state
+  const [showMealPlanDialog, setShowMealPlanDialog] = useState(false)
 
   // Load comments and update like/save states
   useEffect(() => {
@@ -163,8 +169,7 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
   const totalTime = recipe.prepTime + recipe.cookTime
 
   const handleAddToMealPlan = () => {
-    onClose()
-    router.push("/meal-planner")
+    setShowMealPlanDialog(true)
   }
 
   // Like comment handler
@@ -267,6 +272,10 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
         // Auto expand replies
         setExpandedReplies(prev => new Set(prev).add(parentId))
         toast.success("Đã gửi trả lời!", { id: loadingToast })
+        // Update comment count in store for real-time UI update
+        if (recipe?.id) {
+          updateRecipeCommentsCount(recipe.id, 1)
+        }
         // Trigger refresh for parent component
         onCommentChange?.()
       } else {
@@ -324,6 +333,10 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
         setComments([{ ...data.comment, replies: [] }, ...comments])
         setNewComment("")
         toast.success("Đã gửi bình luận!", { id: loadingToast })
+        // Update comment count in store for real-time UI update
+        if (recipe?.id) {
+          updateRecipeCommentsCount(recipe.id, 1)
+        }
         // Trigger refresh for parent component
         onCommentChange?.()
       } else {
@@ -368,6 +381,10 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
             }))
         )
         toast.success("Đã xóa bình luận!", { id: loadingToast })
+        // Update comment count in store for real-time UI update
+        if (recipe?.id) {
+          updateRecipeCommentsCount(recipe.id, -1)
+        }
         // Trigger refresh for parent component
         onCommentChange?.()
       } else {
@@ -961,6 +978,13 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange }: RecipeD
           </div>
         </div>
       </DialogContent>
+      
+      {/* Add to Meal Plan Dialog */}
+      <AddToMealPlanDialog
+        open={showMealPlanDialog}
+        onClose={() => setShowMealPlanDialog(false)}
+        recipe={recipe}
+      />
     </Dialog>
   )
 }

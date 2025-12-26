@@ -30,6 +30,7 @@ interface RecipeStore {
   removeFromShoppingList: (ingredient: string) => void
   clearShoppingList: () => void
   getFilteredRecipes: () => Recipe[]
+  updateRecipeCommentsCount: (recipeId: string, delta: number) => void
 }
 
 // Helper functions để lưu/load data theo userId
@@ -39,7 +40,7 @@ const getUserStorageKey = (userId: string | null, dataType: string) => {
 
 const saveUserData = (userId: string | null, mealPlans: MealPlan[], shoppingList: ShoppingListItem[]) => {
   if (typeof window === "undefined") return
-  
+
   try {
     localStorage.setItem(getUserStorageKey(userId, "mealplans"), JSON.stringify(mealPlans))
     localStorage.setItem(getUserStorageKey(userId, "shopping"), JSON.stringify(shoppingList))
@@ -50,7 +51,7 @@ const saveUserData = (userId: string | null, mealPlans: MealPlan[], shoppingList
       // Xóa dữ liệu guest cũ
       localStorage.removeItem(getUserStorageKey(null, "mealplans"))
       localStorage.removeItem(getUserStorageKey(null, "shopping"))
-      
+
       // Thử lưu lại
       localStorage.setItem(getUserStorageKey(userId, "mealplans"), JSON.stringify(mealPlans))
       localStorage.setItem(getUserStorageKey(userId, "shopping"), JSON.stringify(shoppingList))
@@ -63,10 +64,10 @@ const saveUserData = (userId: string | null, mealPlans: MealPlan[], shoppingList
 
 const loadUserData = (userId: string | null): { mealPlans: MealPlan[]; shoppingList: ShoppingListItem[] } => {
   if (typeof window === "undefined") return { mealPlans: [], shoppingList: [] }
-  
+
   const mealPlansStr = localStorage.getItem(getUserStorageKey(userId, "mealplans"))
   const shoppingStr = localStorage.getItem(getUserStorageKey(userId, "shopping"))
-  
+
   return {
     mealPlans: mealPlansStr ? JSON.parse(mealPlansStr) : [],
     shoppingList: shoppingStr ? JSON.parse(shoppingStr) : [],
@@ -123,7 +124,7 @@ export const useRecipeStore = create<RecipeStore>()(
           // Load meal plans
           const mealPlansRes = await fetch(`/api/meal-plans?userId=${userId}`)
           const mealPlansData = await mealPlansRes.json()
-          
+
           // Load shopping list
           const shoppingRes = await fetch(`/api/shopping-list?userId=${userId}`)
           const shoppingData = await shoppingRes.json()
@@ -156,7 +157,7 @@ export const useRecipeStore = create<RecipeStore>()(
       addMealPlan: async (mealPlan) => {
         const state = get()
         const newMealPlans = [...state.mealPlans, mealPlan]
-        
+
         // Save to MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -172,14 +173,14 @@ export const useRecipeStore = create<RecipeStore>()(
           // Guest user - save to localStorage
           saveUserData(state.currentUserId, newMealPlans, state.shoppingList)
         }
-        
+
         set({ mealPlans: newMealPlans })
       },
 
       updateMealPlan: async (id, updates) => {
         const state = get()
         const newMealPlans = state.mealPlans.map((plan) => (plan.id === id ? { ...plan, ...updates } : plan))
-        
+
         // Save to MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -194,14 +195,14 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, newMealPlans, state.shoppingList)
         }
-        
+
         set({ mealPlans: newMealPlans })
       },
 
       removeMealPlan: async (id) => {
         const state = get()
         const newMealPlans = state.mealPlans.filter((plan) => plan.id !== id)
-        
+
         // Delete from MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -214,7 +215,7 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, newMealPlans, state.shoppingList)
         }
-        
+
         set({ mealPlans: newMealPlans })
       },
 
@@ -225,7 +226,7 @@ export const useRecipeStore = create<RecipeStore>()(
           (item) => !existingItems.some((existing) => existing.ingredient === item.ingredient),
         )
         const newShoppingList = [...existingItems, ...newItems]
-        
+
         // Save to MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -240,7 +241,7 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, state.mealPlans, newShoppingList)
         }
-        
+
         set({ shoppingList: newShoppingList })
       },
 
@@ -249,7 +250,7 @@ export const useRecipeStore = create<RecipeStore>()(
         const newShoppingList = state.shoppingList.map((item) =>
           item.ingredient === ingredient ? { ...item, checked: !item.checked } : item,
         )
-        
+
         // Save to MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -264,14 +265,14 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, state.mealPlans, newShoppingList)
         }
-        
+
         set({ shoppingList: newShoppingList })
       },
 
       removeFromShoppingList: async (ingredient) => {
         const state = get()
         const newShoppingList = state.shoppingList.filter((item) => item.ingredient !== ingredient)
-        
+
         // Save to MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -286,13 +287,13 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, state.mealPlans, newShoppingList)
         }
-        
+
         set({ shoppingList: newShoppingList })
       },
 
       clearShoppingList: async () => {
         const state = get()
-        
+
         // Clear from MongoDB nếu user đã đăng nhập
         if (state.currentUserId) {
           try {
@@ -305,7 +306,7 @@ export const useRecipeStore = create<RecipeStore>()(
         } else {
           saveUserData(state.currentUserId, state.mealPlans, [])
         }
-        
+
         set({ shoppingList: [] })
       },
 
@@ -345,6 +346,17 @@ export const useRecipeStore = create<RecipeStore>()(
 
           return true
         })
+      },
+
+      // Update comment count for a specific recipe (real-time update)
+      updateRecipeCommentsCount: (recipeId, delta) => {
+        const state = get()
+        const updatedRecipes = state.recipes.map((recipe) =>
+          recipe.id === recipeId
+            ? { ...recipe, commentsCount: Math.max(0, (recipe.commentsCount || 0) + delta) }
+            : recipe
+        )
+        set({ recipes: updatedRecipes })
       },
     }),
     {
