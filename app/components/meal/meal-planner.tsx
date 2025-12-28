@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { format, addDays, startOfWeek } from "date-fns"
 import { vi } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Download } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MealSlot } from "@/components/meal/meal-slot"
@@ -125,6 +125,17 @@ export function MealPlanner() {
     return plan?.[mealType] || []
   }
 
+  // Xóa tất cả công thức trong ngày
+  const handleClearAllMealsForDate = (date: string) => {
+    const plan = mealPlans.find((p) => p.date === date)
+    if (!plan) return
+    
+    const confirmDelete = window.confirm(`Bạn có chắc muốn xóa tất cả công thức trong ngày này?`)
+    if (!confirmDelete) return
+    
+    removeMealPlan(plan.id)
+  }
+
   const handleGenerateShoppingListForDate = async (date: string) => {
     const ingredientsMap = new Map<string, { 
       amount: number
@@ -232,15 +243,24 @@ export function MealPlanner() {
                     </span>
                   )}
                   {hasMeals && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="ml-auto"
-                      onClick={() => handleGenerateShoppingListForDate(dateStr)}
-                    >
-                      <Download className="mr-2 h-3 w-3" />
-                      Tạo Danh Sách Mua Sắm
-                    </Button>
+                    <div className="ml-auto flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleGenerateShoppingListForDate(dateStr)}
+                      >
+                        <Download className="mr-2 h-3 w-3" />
+                        Tạo Danh Sách Mua Sắm
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                        onClick={() => handleClearAllMealsForDate(dateStr)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
