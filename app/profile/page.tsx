@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, Mail, Calendar, Clock, CheckCircle, XCircle, Edit, X, Heart, Bookmark } from "lucide-react"
+import { User, Mail, Calendar, Clock, CheckCircle, XCircle, Edit, X, Heart, Bookmark, Trash2 } from "lucide-react"
 import type { Recipe } from "@/lib/types"
 import toast, { Toaster } from 'react-hot-toast'
 import { RecipeCard } from "@/components/recipe/recipe-card"
 import { RecipeDetailDialog } from "@/components/recipe/recipe-detail-dialog"
+import { RecipeFormDialog } from "@/components/recipe/recipe-form-dialog"
 
 const HEALTH_CONDITIONS = [
   "Tiểu đường",
@@ -69,6 +70,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [isEditingHealth, setIsEditingHealth] = useState(false)
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null)
   
   // Health profile edit state
   const [editAge, setEditAge] = useState<number>(user?.age || 0)
@@ -479,21 +481,42 @@ export default function ProfilePage() {
                                   )}
                                 </div>
                               </div>
-                              {recipe.status === "rejected" && (
+                              {(recipe.status === "rejected" || recipe.status === "pending") && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    toast("Chức năng chỉnh sửa đang được phát triển", {
-                                      icon: '🚧',
-                                      duration: 3000,
-                                    })
-                                  }}
+                                  onClick={() => setEditingRecipe(recipe)}
                                 >
                                   <Edit className="h-4 w-4 mr-1" />
                                   Sửa
                                 </Button>
                               )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                onClick={async () => {
+                                  const confirmed = window.confirm(`Bạn có chắc muốn gỡ bài "${recipe.name}" xuống?`)
+                                  if (!confirmed) return
+                                  
+                                  try {
+                                    const res = await fetch(`/api/recipes?id=${recipe.id}&moveToTrash=true`, {
+                                      method: 'DELETE'
+                                    })
+                                    const data = await res.json()
+                                    if (data.success) {
+                                      toast.success('Gỡ bài thành công!')
+                                      setMyRecipes(prev => prev.filter(r => r.id !== recipe.id))
+                                    } else {
+                                      toast.error('Lỗi khi gỡ bài')
+                                    }
+                                  } catch (error) {
+                                    toast.error('Lỗi kết nối')
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -677,6 +700,32 @@ export default function ProfilePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Recipe Form Dialog for editing */}
+      <RecipeFormDialog
+        open={!!editingRecipe}
+        onClose={() => {
+          setEditingRecipe(null)
+          // Reload recipes after edit
+          const loadData = async () => {
+            try {
+              const token = localStorage.getItem('token')
+              const res = await fetch(`/api/recipes?includeAll=true`)
+              const data = await res.json()
+              if (data.success) {
+                const userRecipes = data.recipes.filter(
+                  (r: Recipe) => r.authorEmail === user?.email
+                )
+                setMyRecipes(userRecipes)
+              }
+            } catch (error) {
+              console.error('Error reloading recipes:', error)
+            }
+          }
+          loadData()
+        }}
+        recipe={editingRecipe}
+      />
     </div>
   )
 }
