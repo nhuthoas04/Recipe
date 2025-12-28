@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { RecipeCard } from "@/components/recipe/recipe-card"
@@ -12,6 +12,8 @@ import { useRecipeStore } from "@/lib/recipe-store"
 import { useAuthStore } from "@/lib/auth-store"
 import type { Recipe } from "@/lib/types"
 import { Toaster } from 'react-hot-toast'
+
+const ITEMS_PER_PAGE = 12 // 3 hàng x 4 cột
 
 const categories = [
   { value: null, label: "Tất cả" },
@@ -34,8 +36,9 @@ export function RecipeBrowser() {
   const [mounted, setMounted] = useState(false)
   const [isContributeDialogOpen, setIsContributeDialogOpen] = useState(false)
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true)
-  const [commentRefreshKey, setCommentRefreshKey] = useState(0) // Force re-render when comments change
-  const [likeSaveRefreshKey, setLikeSaveRefreshKey] = useState(0) // Force re-render when likes/saves change
+  const [commentRefreshKey, setCommentRefreshKey] = useState(0)
+  const [likeSaveRefreshKey, setLikeSaveRefreshKey] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1) // Pagination state
   const { isAuthenticated, user } = useAuthStore()
   
   // Chỉ lấy những giá trị cần thiết từ store để tránh re-render
@@ -76,6 +79,18 @@ export function RecipeBrowser() {
     if (!mounted) return [];
     return getFilteredRecipes();
   }, [mounted, recipes, searchQuery, selectedCategory, selectedCuisine, getFilteredRecipes]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedCuisine]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRecipes.length / ITEMS_PER_PAGE);
+  const paginatedRecipes = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredRecipes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredRecipes, currentPage]);
 
   // Handle like/save changes from dialog - update recipe in store
   const handleLikeSaveChange = useCallback((recipeId: string, field: 'likesCount' | 'savesCount', newValue: number) => {
@@ -194,15 +209,110 @@ export function RecipeBrowser() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : filteredRecipes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRecipes.map((recipe) => (
-            <RecipeCard 
-              key={`${recipe.id}-${commentRefreshKey}-${likeSaveRefreshKey}`} 
-              recipe={recipe} 
-              onClick={() => setSelectedRecipe(recipe)} 
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedRecipes.map((recipe) => (
+              <RecipeCard 
+                key={`${recipe.id}-${commentRefreshKey}-${likeSaveRefreshKey}`} 
+                recipe={recipe} 
+                onClick={() => setSelectedRecipe(recipe)} 
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 pt-8">
+              {/* First page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="text-primary"
+              >
+                «
+              </Button>
+              
+              {/* Previous */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="text-primary"
+              >
+                ‹
+              </Button>
+              
+              {/* Page numbers */}
+              {(() => {
+                const pages = [];
+                const showPages = 5;
+                let start = Math.max(1, currentPage - 2);
+                let end = Math.min(totalPages, start + showPages - 1);
+                
+                if (end - start < showPages - 1) {
+                  start = Math.max(1, end - showPages + 1);
+                }
+                
+                for (let i = start; i <= end; i++) {
+                  pages.push(
+                    <Button
+                      key={i}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentPage(i)}
+                      className={currentPage === i ? "bg-primary text-primary-foreground" : "text-primary"}
+                    >
+                      {i}
+                    </Button>
+                  );
+                }
+                
+                // Add ... and last page if needed
+                if (end < totalPages) {
+                  pages.push(<span key="dots" className="px-2 text-muted-foreground">...</span>);
+                  pages.push(
+                    <Button
+                      key={totalPages}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="text-primary"
+                    >
+                      {totalPages}
+                    </Button>
+                  );
+                }
+                
+                return pages;
+              })()}
+              
+              {/* Next */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="text-primary"
+              >
+                ›
+              </Button>
+              
+              {/* Last page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="text-primary"
+              >
+                »
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Không tìm thấy công thức nào phù hợp</p>

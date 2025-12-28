@@ -16,6 +16,8 @@ import toast, { Toaster } from 'react-hot-toast'
 
 type TabType = "all" | "pending" | "approved" | "rejected" | "users" | "trash"
 
+const ADMIN_ITEMS_PER_PAGE = 10
+
 export default function AdminPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuthStore()
@@ -28,6 +30,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
   const [usersList, setUsersList] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Load ALL recipes (including pending) từ API khi component mount
   useEffect(() => {
@@ -90,8 +93,12 @@ export default function AdminPage() {
 
   // Filter recipes theo tab và search
   const filteredRecipes = allRecipes.filter(recipe => {
-    const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.toLowerCase()
+    const matchesSearch = recipe.name.toLowerCase().includes(query) ||
+      recipe.description.toLowerCase().includes(query) ||
+      (recipe.difficulty && recipe.difficulty.toLowerCase().includes(query)) ||
+      (recipe.category && recipe.category.toLowerCase().includes(query)) ||
+      (recipe.cuisine && recipe.cuisine.toLowerCase().includes(query))
     
     // Loại bỏ các recipe đã xóa (trong thùng rác) khỏi các tab khác
     const notInTrash = !recipe.isDeleted
@@ -104,6 +111,18 @@ export default function AdminPage() {
     
     return matchesSearch
   })
+
+  // Reset page when filter/tab changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, activeTab])
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredRecipes.length / ADMIN_ITEMS_PER_PAGE)
+  const paginatedRecipes = filteredRecipes.slice(
+    (currentPage - 1) * ADMIN_ITEMS_PER_PAGE,
+    currentPage * ADMIN_ITEMS_PER_PAGE
+  )
 
   const pendingCount = allRecipes.filter(r => r.status === "pending" && !r.isDeleted).length
   const approvedCount = allRecipes.filter(r => (r.status === "approved" || !r.status) && !r.isDeleted).length
@@ -488,7 +507,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredRecipes.map((recipe) => (
+                  {paginatedRecipes.map((recipe) => (
                     <div
                       key={recipe.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
@@ -611,6 +630,98 @@ export default function AdminPage() {
                   {filteredRecipes.length === 0 && (
                     <div className="text-center py-12 text-muted-foreground">
                       Không tìm thấy công thức nào
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 pt-4 border-t">
+                      {/* First page */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="text-primary"
+                      >
+                        «
+                      </Button>
+                      
+                      {/* Previous */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="text-primary"
+                      >
+                        ‹
+                      </Button>
+                      
+                      {/* Page numbers */}
+                      {(() => {
+                        const pages = [];
+                        const showPages = 5;
+                        let start = Math.max(1, currentPage - 2);
+                        let end = Math.min(totalPages, start + showPages - 1);
+                        
+                        if (end - start < showPages - 1) {
+                          start = Math.max(1, end - showPages + 1);
+                        }
+                        
+                        for (let i = start; i <= end; i++) {
+                          pages.push(
+                            <Button
+                              key={i}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setCurrentPage(i)}
+                              className={currentPage === i ? "bg-primary text-primary-foreground" : "text-primary"}
+                            >
+                              {i}
+                            </Button>
+                          );
+                        }
+                        
+                        if (end < totalPages) {
+                          pages.push(<span key="dots" className="px-2 text-muted-foreground">...</span>);
+                          pages.push(
+                            <Button
+                              key={totalPages}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setCurrentPage(totalPages)}
+                              className="text-primary"
+                            >
+                              {totalPages}
+                            </Button>
+                          );
+                        }
+                        
+                        return pages;
+                      })()}
+                      
+                      {/* Next */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="text-primary"
+                      >
+                        ›
+                      </Button>
+                      
+                      {/* Last page */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="text-primary"
+                      >
+                        »
+                      </Button>
                     </div>
                   )}
                 </div>

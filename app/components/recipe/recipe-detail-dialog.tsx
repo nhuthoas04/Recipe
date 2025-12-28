@@ -458,10 +458,13 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange, onLikeSav
 
   return (
     <Dialog open={!!recipe} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] p-0 gap-0" showCloseButton={false}>
-        <div className="grid grid-cols-[minmax(600px,1fr)_400px] h-[90vh]">
-          {/* Left: Recipe Details - Minimum 600px width */}
-          <div className="overflow-hidden border-r bg-background">
+      <DialogContent 
+        className="max-w-5xl w-[90vw] max-h-[85vh] p-0 gap-0 overflow-hidden" 
+        showCloseButton={false}
+      >
+        <div className="flex w-full h-[85vh]">
+          {/* Left: Recipe Details */}
+          <div className="flex-1 overflow-hidden border-r bg-background">
             <ScrollArea className="h-full">
               <div className="relative aspect-[16/9] w-full">
                 <Image src={recipe.image || "/placeholder.svg"} alt={recipe.name} fill className="object-cover" />
@@ -667,8 +670,8 @@ export function RecipeDetailDialog({ recipe, onClose, onCommentChange, onLikeSav
             </ScrollArea>
           </div>
 
-          {/* Right: Comments Section - Fixed 400px */}
-          <div className="flex flex-col bg-background">
+          {/* Right: Comments Section */}
+          <div className="w-[380px] shrink-0 flex flex-col bg-background">
             <div className="p-4 border-b bg-muted/30">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-primary" />
