@@ -219,7 +219,7 @@ function RecipeCardComponent({ recipe, onClick }: RecipeCardProps) {
 
       <CardFooter className="p-4 pt-0">
         <div className="flex flex-wrap gap-1">
-          {recipe.tags.slice(0, 3).map((tag) => (
+          {(recipe.tags || []).slice(0, 3).map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
               {tag}
             </Badge>
