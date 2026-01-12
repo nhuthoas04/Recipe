@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
+import jwt from 'jsonwebtoken';
 
-// Use internal Docker network URL for server-side requests
-const BACKEND_URL = process.env.INTERNAL_API_URL || 'http://localhost:5000';
+const JWT_SECRET = process.env.JWT_SECRET || '8f9e7d6c5b4a3928171615141312111009080706050403020100abcdefghijklmnop';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,29 +17,59 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Forward to backend
-    const response = await fetch(`${BACKEND_URL}/api/users/saved-recipes`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    // Decode token to get userId
+    let userId: string;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (err) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db('goiymonan');
+
+    // Find user and get their saved recipes
+    const user = await db.collection('users').findOne({
+      _id: new ObjectId(userId)
     });
 
-    const data = await response.json();
-    
-    // Format recipes để đúng cấu trúc frontend
-    if (data.success && data.recipes) {
-      data.recipes = data.recipes.map((recipe: any) => ({
-        ...recipe,
-        name: recipe.name || recipe.title,
-        image: recipe.image || recipe.imageUrl,
-        likesCount: recipe.likesCount || 0,
-        savesCount: recipe.savesCount || 0,
-      }));
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
     }
-    
-    return NextResponse.json(data, { status: response.status });
+
+    const savedRecipeIds = user.savedRecipes || [];
+
+    if (savedRecipeIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        recipes: []
+      });
+    }
+
+    // Get all saved recipes
+    const recipes = await db.collection('recipes')
+      .find({ _id: { $in: savedRecipeIds.map((id: any) => new ObjectId(id)) } })
+      .toArray();
+
+    const formattedRecipes = recipes.map(recipe => ({
+      ...recipe,
+      id: recipe._id.toString(),
+      _id: undefined,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      recipes: formattedRecipes
+    });
   } catch (error: any) {
+    console.error('[saved-recipes] Error:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

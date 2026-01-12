@@ -5,7 +5,13 @@ import { ObjectId } from 'mongodb'
 // GET - Lấy tất cả recipes
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 [API /api/recipes] Starting GET request...')
+    console.log('🔍 MONGODB_URI exists:', !!process.env.MONGODB_URI)
+    console.log('🔍 MONGODB_URI prefix:', process.env.MONGODB_URI?.substring(0, 20))
+    
     const db = await getDatabase()
+    console.log('✅ Database connected successfully')
+    
     const recipesCollection = db.collection('recipes')
     const commentsCollection = db.collection('comments')
 
@@ -28,7 +34,20 @@ export async function GET(request: NextRequest) {
       query = { status }
     }
 
-    const recipes = await recipesCollection.find(query).sort({ createdAt: -1 }).toArray()
+    // Create index on createdAt if not exists (one-time operation)
+    try {
+      await recipesCollection.createIndex({ createdAt: -1 })
+    } catch (indexError) {
+      console.warn('Index creation warning (may already exist):', (indexError as Error)?.message)
+    }
+
+    const recipes = await recipesCollection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(1000) // Limit to prevent memory issues
+      .toArray()
+
+    console.log(`✅ Found ${recipes.length} recipes`)
 
     // Get all comment counts in one query (batch instead of N queries)
     const recipeIds = recipes.map(r => r._id.toString())
@@ -52,9 +71,16 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (error) {
-    console.error('Get recipes error:', error)
+    console.error('❌ [API /api/recipes] Error details:', error)
+    console.error('❌ Error name:', (error as Error)?.name)
+    console.error('❌ Error message:', (error as Error)?.message)
+    console.error('❌ Error stack:', (error as Error)?.stack)
     return NextResponse.json(
-      { success: false, error: 'Lỗi khi lấy công thức' },
+      { 
+        success: false, 
+        error: 'Lỗi khi lấy công thức',
+        details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+      },
       { status: 500 }
     )
   }

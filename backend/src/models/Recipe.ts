@@ -17,7 +17,7 @@ export interface IRecipe extends Document {
   cookTime: number;
   servings: number;
   difficulty: 'Dễ' | 'Trung bình' | 'Khó'; // Đổi sang tiếng Việt
-  category: 'món chính' | 'món phụ' | 'canh' | 'món tráng miệng' | 'đồ uống';
+  category: 'món chính' | 'món phụ' | 'canh' | 'món tráng miệng';
   cuisine?: 'Bắc' | 'Trung' | 'Nam' | 'Quốc tế'; // Thêm vùng miền
   tags: string[];
   // Health tags
@@ -83,7 +83,7 @@ const recipeSchema = new Schema<IRecipe>({
   },
   category: {
     type: String,
-    enum: ['món chính', 'món phụ', 'canh', 'món tráng miệng', 'đồ uống'],
+    enum: ['món chính', 'món phụ', 'canh', 'món tráng miệng'],
     required: true
   },
   cuisine: {

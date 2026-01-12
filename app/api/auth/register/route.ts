@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { getDatabase } from '@/lib/mongodb'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || '8f9e7d6c5b4a3928171615141312111009080706050403020100abcdefghijklmnop'
 const JWT_EXPIRES_IN = '7d'
 
 export async function POST(request: NextRequest) {

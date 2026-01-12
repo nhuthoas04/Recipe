@@ -13,6 +13,13 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log('[AI Recommendations API] User info:', {
+      userId,
+      age,
+      healthConditionsCount: healthConditions?.length || 0,
+      dietaryPreferencesCount: dietaryPreferences?.length || 0
+    })
+
     const client = await clientPromise
     const db = client.db("goiymonan")
     const commentsCollection = db.collection("comments")
@@ -26,86 +33,144 @@ export async function POST(request: Request) {
       })
       .toArray()
 
-    // Logic AI đơn giản để filter recipes phù hợp
+    console.log(`[AI Recommendations API] Found ${allRecipes.length} recipes`)
+
+    // Helper function để matching linh hoạt hơn
+    const matchesCondition = (recipeTag: string, userCondition: string): boolean => {
+      const recipeTagLower = recipeTag.toLowerCase().trim()
+      const userConditionLower = userCondition.toLowerCase().trim()
+      
+      // Exact match
+      if (recipeTagLower === userConditionLower) return true
+      
+      // Partial match
+      if (recipeTagLower.includes(userConditionLower) || userConditionLower.includes(recipeTagLower)) return true
+      
+      // Synonyms/Related terms
+      const synonyms: { [key: string]: string[] } = {
+        'tiểu đường': ['đái tháo đường', 'đường huyết cao', 'ít đường', 'không đường'],
+        'cao huyết áp': ['huyết áp cao', 'ít muối', 'ít natri'],
+        'cholesterol cao': ['mỡ máu cao', 'ít mỡ', 'không cholesterol'],
+        'béo phì': ['giảm cân', 'ít calo', 'ít dầu mỡ'],
+        'gầy': ['tăng cân', 'giàu protein', 'giàu calo'],
+        'ăn chay': ['chay', 'không thịt', 'rau củ'],
+      }
+      
+      for (const [key, values] of Object.entries(synonyms)) {
+        if (userConditionLower.includes(key) && values.some(v => recipeTagLower.includes(v))) {
+          return true
+        }
+        if (recipeTagLower.includes(key) && values.some(v => userConditionLower.includes(v))) {
+          return true
+        }
+      }
+      
+      return false
+    }
+
+    // Logic AI để filter recipes phù hợp
     const recommendedRecipes = allRecipes
       .map((recipe) => {
         let score = 0
         const reasons = []
 
-        // Kiểm tra health tags
-        if (recipe.healthTags && dietaryPreferences) {
-          const matchingHealthTags = recipe.healthTags.filter((tag: string) =>
-            dietaryPreferences.some((pref: string) =>
-              tag.toLowerCase().includes(pref.toLowerCase()) ||
-              pref.toLowerCase().includes(tag.toLowerCase())
+        // 1. KIỂM TRA LOẠI TRỪ TRƯỚC (notSuitableFor) - ƯU TIÊN CAO NHẤT
+        if (recipe.notSuitableFor && healthConditions && healthConditions.length > 0) {
+          const hasConflict = recipe.notSuitableFor.some((recipeCondition: string) =>
+            healthConditions.some((userCondition: string) =>
+              matchesCondition(recipeCondition, userCondition)
             )
           )
-          if (matchingHealthTags.length > 0) {
-            score += matchingHealthTags.length * 3
-            reasons.push(`Phù hợp với chế độ ăn: ${matchingHealthTags.join(", ")}`)
+          if (hasConflict) {
+            console.log(`[AI] Rejected recipe "${recipe.name}" due to notSuitableFor conflict`)
+            return null // Loại bỏ recipe này ngay
           }
         }
 
-        // Kiểm tra suitable for
-        if (recipe.suitableFor && healthConditions) {
-          const matchingSuitable = recipe.suitableFor.filter((condition: string) =>
+        // 2. KIỂM TRA PHẦN PHÙNG HỢP (suitableFor) - ĐIỂM CAO
+        if (recipe.suitableFor && healthConditions && healthConditions.length > 0) {
+          const matchingSuitable = recipe.suitableFor.filter((recipeCondition: string) =>
             healthConditions.some((userCondition: string) =>
-              condition.toLowerCase().includes(userCondition.toLowerCase()) ||
-              userCondition.toLowerCase().includes(condition.toLowerCase())
+              matchesCondition(recipeCondition, userCondition)
             )
           )
           if (matchingSuitable.length > 0) {
-            score += matchingSuitable.length * 5
+            score += matchingSuitable.length * 10 // Tăng điểm từ 5 lên 10
             reasons.push(`Phù hợp cho: ${matchingSuitable.join(", ")}`)
           }
         }
 
-        // Kiểm tra NOT suitable for - loại bỏ
-        if (recipe.notSuitableFor && healthConditions) {
-          const hasConflict = recipe.notSuitableFor.some((condition: string) =>
-            healthConditions.some((userCondition: string) =>
-              condition.toLowerCase().includes(userCondition.toLowerCase()) ||
-              userCondition.toLowerCase().includes(condition.toLowerCase())
+        // 3. KIỂM TRA HEALTH TAGS (healthTags) - ĐIỂM TRUNG BÌNH
+        if (recipe.healthTags && dietaryPreferences && dietaryPreferences.length > 0) {
+          const matchingHealthTags = recipe.healthTags.filter((tag: string) =>
+            dietaryPreferences.some((pref: string) =>
+              matchesCondition(tag, pref)
             )
           )
-          if (hasConflict) {
-            return null // Loại bỏ recipe này
+          if (matchingHealthTags.length > 0) {
+            score += matchingHealthTags.length * 5 // Tăng từ 3 lên 5
+            reasons.push(`Đặc điểm: ${matchingHealthTags.join(", ")}`)
           }
         }
 
-        // Kiểm tra tuổi
+        // 4. KIỂM TRA TUỔI
         if (age) {
-          if (age < 18 && recipe.suitableFor?.includes("Trẻ em")) {
-            score += 2
+          if (age < 18 && recipe.suitableFor?.some((s: string) => 
+            s.toLowerCase().includes('trẻ') || s.toLowerCase().includes('em')
+          )) {
+            score += 3
             reasons.push("Phù hợp cho trẻ em")
           }
-          if (age >= 60 && recipe.suitableFor?.includes("Người cao tuổi")) {
-            score += 2
+          if (age >= 60 && recipe.suitableFor?.some((s: string) => 
+            s.toLowerCase().includes('cao tuổi') || s.toLowerCase().includes('người già')
+          )) {
+            score += 3
             reasons.push("Phù hợp cho người cao tuổi")
           }
         }
 
-        // Kiểm tra calories (ví dụ: người béo phì nên ăn ít calo)
-        if (healthConditions?.includes("Béo phì") || healthConditions?.includes("béo phì")) {
-          if (recipe.nutrition && recipe.nutrition.calories < 500) {
-            score += 2
-            reasons.push("Ít calo")
+        // 5. KIỂM TRA DINH DƯỠNG DỰA TRÊN BỆNH LÝ
+        if (recipe.nutrition && healthConditions) {
+          // Béo phì -> Ít calo
+          if (healthConditions.some(c => matchesCondition('béo phì', c))) {
+            if (recipe.nutrition.calories && recipe.nutrition.calories < 500) {
+              score += 3
+              reasons.push("Ít calo, phù hợp giảm cân")
+            }
+          }
+          
+          // Gầy -> Nhiều protein, nhiều calo
+          if (healthConditions.some(c => matchesCondition('gầy', c))) {
+            if (recipe.nutrition.protein && recipe.nutrition.protein > 30) {
+              score += 3
+              reasons.push("Giàu protein")
+            }
+            if (recipe.nutrition.calories && recipe.nutrition.calories > 600) {
+              score += 2
+              reasons.push("Giàu năng lượng")
+            }
+          }
+          
+          // Tiểu đường -> Ít carbs, ít đường
+          if (healthConditions.some(c => matchesCondition('tiểu đường', c))) {
+            if (recipe.nutrition.carbs && recipe.nutrition.carbs < 50) {
+              score += 3
+              reasons.push("Ít carbohydrate")
+            }
           }
         }
 
-        // Kiểm tra protein (ví dụ: người gầy nên ăn nhiều protein)
-        if (healthConditions?.includes("Gầy") || healthConditions?.includes("gầy")) {
-          if (recipe.nutrition && recipe.nutrition.protein > 30) {
-            score += 2
-            reasons.push("Giàu protein")
-          }
+        // Nếu không có lý do cụ thể, vẫn giữ lại nhưng điểm thấp
+        if (score === 0) {
+          score = 1
+          reasons.push("Món ăn phổ biến")
         }
 
         return {
           ...recipe,
           _id: recipe._id.toString(),
           recommendationScore: score,
-          recommendationReasons: reasons.length > 0 ? reasons : ["Công thức phổ biến"],
+          recommendationReasons: reasons,
         }
       })
       .filter(Boolean)
@@ -116,7 +181,9 @@ export async function POST(request: Request) {
         }
         return (b.likesCount || 0) - (a.likesCount || 0)
       })
-      .slice(0, 10) // Top 10 recommendations
+      .slice(0, 12) // Top 12 recommendations (tăng từ 10)
+
+    console.log(`[AI Recommendations API] Returning ${recommendedRecipes.length} recommendations`)
 
     // Get comment counts for recommended recipes (batch query)
     const recipeIds = recommendedRecipes.map((r: any) => r._id)

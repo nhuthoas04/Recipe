@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
 
 // Must match the JWT_SECRET in login route
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || '8f9e7d6c5b4a3928171615141312111009080706050403020100abcdefghijklmnop';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,8 @@ export async function POST(request: NextRequest) {
       request.cookies.get('auth-token')?.value;
 
     console.log('[like-recipe] recipeId:', recipeId, 'token exists:', !!token);
+    console.log('[like-recipe] JWT_SECRET exists:', !!JWT_SECRET, 'length:', JWT_SECRET?.length);
+    console.log('[like-recipe] Token (first 20 chars):', token?.substring(0, 20));
 
     if (!token) {
       return NextResponse.json(
@@ -28,11 +30,13 @@ export async function POST(request: NextRequest) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       userId = decoded.userId;
-      console.log('[like-recipe] Decoded userId:', userId);
+      console.log('[like-recipe] ✅ Decoded userId:', userId);
     } catch (err) {
-      console.error('[like-recipe] Token verification failed:', err);
+      console.error('[like-recipe] ❌ Token verification failed:', err);
+      console.error('[like-recipe] Token that failed:', token);
+      console.error('[like-recipe] JWT_SECRET being used:', JWT_SECRET.substring(0, 10) + '...');
       return NextResponse.json(
-        { success: false, error: 'Invalid token' },
+        { success: false, error: 'Invalid token', details: process.env.NODE_ENV === 'development' ? (err as Error)?.message : undefined },
         { status: 401 }
       );
     }

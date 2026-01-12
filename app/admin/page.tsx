@@ -67,7 +67,7 @@ export default function AdminPage() {
   }, [activeTab])
 
   // Redirect if not authenticated or not admin
-  if (!isAuthenticated || user?.email !== "admin@recipe.com") {
+  if (!isAuthenticated || user?.role !== "admin") {
     return (
       <div className="min-h-screen">
         <Header />
@@ -494,9 +494,11 @@ export default function AdminPage() {
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center text-2xl">
-                          🍽️
-                        </div>
+                        <img 
+                          src={recipe.image || '/placeholder.svg'} 
+                          alt={recipe.name}
+                          className="w-16 h-16 bg-muted rounded-md object-cover"
+                        />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">{recipe.name}</h3>

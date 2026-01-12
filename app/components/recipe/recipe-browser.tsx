@@ -36,6 +36,8 @@ export function RecipeBrowser() {
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true)
   const [commentRefreshKey, setCommentRefreshKey] = useState(0) // Force re-render when comments change
   const [likeSaveRefreshKey, setLikeSaveRefreshKey] = useState(0) // Force re-render when likes/saves change
+  const [currentPage, setCurrentPage] = useState(1) // Pagination state
+  const recipesPerPage = 9 // 9 recipes per page
   const { isAuthenticated, user } = useAuthStore()
   
   // Chỉ lấy những giá trị cần thiết từ store để tránh re-render
@@ -76,6 +78,17 @@ export function RecipeBrowser() {
     if (!mounted) return [];
     return getFilteredRecipes();
   }, [mounted, recipes, searchQuery, selectedCategory, selectedCuisine, getFilteredRecipes]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredRecipes.length / recipesPerPage)
+  const startIndex = (currentPage - 1) * recipesPerPage
+  const endIndex = startIndex + recipesPerPage
+  const currentRecipes = filteredRecipes.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedCategory, selectedCuisine])
 
   // Handle like/save changes from dialog - update recipe in store
   const handleLikeSaveChange = useCallback((recipeId: string, field: 'likesCount' | 'savesCount', newValue: number) => {
@@ -134,8 +147,8 @@ export function RecipeBrowser() {
         )}
       </div>
 
-      {/* AI Recommendations - Chỉ hiển thị khi KHÔNG tìm kiếm */}
-      {isAuthenticated && user && !searchQuery && (
+      {/* AI Recommendations - Chỉ hiển thị khi KHÔNG tìm kiếm và KHÔNG phải admin */}
+      {isAuthenticated && user && !searchQuery && user.email !== "admin@recipe.com" && (
         <>
           {user.hasCompletedHealthProfile ? (
             <AIRecommendations
@@ -193,16 +206,72 @@ export function RecipeBrowser() {
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      ) : filteredRecipes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRecipes.map((recipe) => (
-            <RecipeCard 
-              key={`${recipe.id}-${commentRefreshKey}-${likeSaveRefreshKey}`} 
-              recipe={recipe} 
-              onClick={() => setSelectedRecipe(recipe)} 
-            />
-          ))}
-        </div>
+      ) : currentRecipes.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentRecipes.map((recipe) => (
+              <RecipeCard 
+                key={`${recipe.id}-${commentRefreshKey}-${likeSaveRefreshKey}`} 
+                recipe={recipe} 
+                onClick={() => setSelectedRecipe(recipe)} 
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              {/* Previous button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
+              >
+                ←
+              </button>
+
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                // Show first page, last page, current page, and pages around current
+                const showPage = 
+                  pageNum === 1 || 
+                  pageNum === totalPages || 
+                  Math.abs(pageNum - currentPage) <= 1
+
+                if (!showPage && pageNum === 2 && currentPage > 3) {
+                  return <span key={pageNum} className="px-2">...</span>
+                }
+                if (!showPage && pageNum === totalPages - 1 && currentPage < totalPages - 2) {
+                  return <span key={pageNum} className="px-2">...</span>
+                }
+                if (!showPage) return null
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-[#3d6b5a] text-white'
+                        : 'border hover:bg-gray-100'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+
+              {/* Next button */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 rounded-full border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
+              >
+                →
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Không tìm thấy công thức nào phù hợp</p>

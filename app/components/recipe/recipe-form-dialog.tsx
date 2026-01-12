@@ -335,7 +335,7 @@ export function RecipeFormDialog({ open, onClose, recipe }: RecipeFormDialogProp
                   <SelectItem value="món phụ">Món phụ</SelectItem>
                   <SelectItem value="canh">Canh</SelectItem>
                   <SelectItem value="món tráng miệng">Món tráng miệng</SelectItem>
-                  <SelectItem value="đồ uống">Đồ uống</SelectItem>
+
                 </SelectContent>
               </Select>
             </div>

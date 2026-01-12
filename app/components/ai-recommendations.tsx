@@ -20,9 +20,15 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Kiểm tra có thông tin sức khỏe không (không chỉ tuổi)
-  const hasHealthInfo = (healthConditions && healthConditions.length > 0) || 
-                        (dietaryPreferences && dietaryPreferences.length > 0)
+  // Kiểm tra có thông tin sức khỏe không - CẦN có ít nhất 1 mục được chọn
+  const hasHealthInfo = ((healthConditions && healthConditions.length > 0) || 
+                        (dietaryPreferences && dietaryPreferences.length > 0))
+  
+  console.log('[AIRecommendations] Health Info Check:', {
+    hasHealthInfo,
+    healthConditionsCount: healthConditions?.length || 0,
+    dietaryPreferencesCount: dietaryPreferences?.length || 0
+  })
 
   const loadRecommendations = useCallback(async () => {
     if (!hasHealthInfo) {
@@ -58,12 +64,13 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
     } finally {
       setLoading(false)
     }
-  }, [userId, age, healthConditions, dietaryPreferences, hasHealthInfo])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, age, JSON.stringify(healthConditions), JSON.stringify(dietaryPreferences)])
 
   useEffect(() => {
-    // Chỉ load một lần khi mount, không load lại khi dependencies thay đổi
+    // Reload khi thông tin sức khỏe thay đổi
     loadRecommendations()
-  }, [])
+  }, [loadRecommendations])
 
   // Update comment count for a specific recipe in recommendations (delta: +1 for add, -1 for delete)
   const handleCommentChange = useCallback((delta: number = 1) => {
@@ -81,6 +88,8 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
   // Update like/save counts for a specific recipe
   const handleLikeSaveChange = useCallback((recipeId: string, field: 'likesCount' | 'savesCount', newValue: number) => {
     console.log('[AI Recommendations] handleLikeSaveChange called:', { recipeId, field, newValue })
+    
+    // Update in recommendations
     setRecommendations(prev => {
       console.log('[AI Recommendations] Current recommendations IDs:', prev.map(r => r.id))
       return prev.map(recipe => 
@@ -89,6 +98,16 @@ export function AIRecommendations({ userId, age, healthConditions, dietaryPrefer
           : recipe
       )
     })
+    
+    // ĐỒNG BỘ: Cập nhật vào recipe store chính (cho danh sách ngoài gợi ý)
+    const { useRecipeStore } = require('@/lib/recipe-store')
+    const currentRecipes = useRecipeStore.getState().recipes
+    const updatedRecipes = currentRecipes.map((recipe: any) => 
+      recipe.id === recipeId 
+        ? { ...recipe, [field]: newValue }
+        : recipe
+    )
+    useRecipeStore.setState({ recipes: updatedRecipes })
   }, [])
 
   const scrollLeft = () => {

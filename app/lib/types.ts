@@ -3,7 +3,7 @@ export interface Recipe {
   name: string
   description: string
   image: string
-  category: "món chính" | "món phụ" | "canh" | "món tráng miệng" | "đồ uống"
+  category: "món chính" | "món phụ" | "canh" | "món tráng miệng"
   cuisine: "Bắc" | "Trung" | "Nam" | "Quốc tế"
   prepTime: number // phút
   cookTime: number // phút

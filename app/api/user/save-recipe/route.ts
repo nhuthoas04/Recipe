@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
 
 // Must match the JWT_SECRET in login route
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || '8f9e7d6c5b4a3928171615141312111009080706050403020100abcdefghijklmnop';
 
 export async function POST(request: NextRequest) {
   try {
